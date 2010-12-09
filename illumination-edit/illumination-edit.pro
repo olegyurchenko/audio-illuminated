@@ -15,12 +15,17 @@ SOURCES += main.cpp\
         editor_window.cpp \
     ../waveform.cpp \
     ../wav_file.cpp \
-    ../audio_controller.cpp
+    ../audio_controller.cpp \
+    ../effect_controller.cpp
 
 HEADERS  += editor_window.h \
     ../waveform.h \
     ../wav_file.h \
     ../effect_plugin_if.h \
-    ../audio_controller.h
+    ../audio_controller.h \
+    ../effect_controller.h
 
 FORMS    += editorwindow.ui
+
+INCLUDEPATH += .\
+  ../
