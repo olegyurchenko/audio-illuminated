@@ -25,7 +25,7 @@
 #include <QVariant>
 /*----------------------------------------------------------------------------*/
 /**Class represented effect propertyes*/
-class EffectProperies
+class EffectProperties
 {
 protected:
   bool m_modified;
@@ -35,11 +35,11 @@ protected:
   QVariantMap m_properties;
 
 public:
-  bool modofoed() const {return m_modified;}
+  bool modified() const {return m_modified;}
   int effectId() const {return m_effectId;}
   int id() const {return m_id;}
-  qint64 timaStart() const {return m_timeStart;}
-  const QVariant& property (const QString& name) const {return m_properties[name];}
+  qint64 timeStart() const {return m_timeStart;}
+  const QVariant property (const QString& name) const {return m_properties[name];}
   void propertySet(const QString& name, const QVariant& value) {m_properties[name] = value; m_modified = true;}
   void setModified(bool m) {m_modified = m;}
 
@@ -47,21 +47,21 @@ protected:
   void setEffectId(int i) {m_effectId = i;}
   void setId(int i) {m_id = i;}
   void setTimeStart(qint64 s) {m_timeStart = s;}
-  QVariantMap& properties() {return m_properies;}
+  QVariantMap& properties() {return m_properties;}
 };
 /*----------------------------------------------------------------------------*/
 class EffectPropertyPanel
 {
 public:
   virtual ~EffectPropertyPanel(){}
-  virtual propertyEdit(EffectProperies *prop) = 0;
+  virtual void propertyEdit(EffectProperties *prop) = 0;
 };
 /*----------------------------------------------------------------------------*/
 class EffectDemoPanel
 {
 public:
   virtual ~EffectDemoPanel(){}
-  virtual effectStart(const EffectProperies &prop) = 0;
+  virtual void effectStart(const EffectProperties &prop) = 0;
 };
 /*----------------------------------------------------------------------------*/
 class EffectPluginInterface
@@ -74,10 +74,23 @@ public:
   virtual const QString& effectDescription() = 0;
   virtual const QPixmap& effectIcon() = 0;
   virtual EffectPropertyPanel* createPropertyPanel(QWidget *parent) = 0;
+};
+/*----------------------------------------------------------------------------*/
+class ControllerPluginInterface
+{
+public:
+  virtual ~ControllerPluginInterface() {}
+  virtual int controllerId() = 0;
+  virtual const QString& controllerName() = 0;
+  virtual const QString& controllerDescription() = 0;
+  virtual const QPixmap& controllerIcon() = 0;
+  virtual void effectStart(const EffectProperties &prop) = 0;
+  virtual QWidget* createPropertyPanel(QWidget *parent) = 0;
   virtual EffectDemoPanel* createDemoPanelPanel(QWidget *parent) = 0;
 };
 
 /*----------------------------------------------------------------------------*/
 Q_DECLARE_INTERFACE(EffectPluginInterface, "com.illuminated.EffectPluginInterface/1.0" )
-    /*----------------------------------------------------------------------------*/
+Q_DECLARE_INTERFACE(ControllerPluginInterface, "com.illuminated.ControllerPluginInterface/1.0" )
+/*----------------------------------------------------------------------------*/
 #endif /*EFFECT_PLUGIN_IF_H_1291889096*/
