@@ -20,6 +20,7 @@
 #include <QtDebug>
 #include <QResizeEvent>
 #include <QRect>
+#include <QImage>
 
 WaveFormWidget :: WaveFormWidget(QWidget *parent)
   :QWidget(parent), m_pixmap(QSize(0,0))
@@ -95,6 +96,7 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
     if(
         (m_selectionStart >= m_startPosition && m_selectionStart < m_startPosition + m_windowSize)
         || (m_selectionStart + m_selectionLength >= m_startPosition && m_selectionStart + m_selectionLength < m_startPosition + m_windowSize)
+        || (m_selectionStart < m_startPosition && m_selectionStart + m_selectionLength > m_startPosition + m_windowSize)
       )
     {
       QRect r = rect();
@@ -102,6 +104,12 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
         r.setLeft((int)(dX * (m_selectionStart - m_startPosition)));
       if(m_selectionStart + m_selectionLength < m_startPosition + m_windowSize)
         r.setRight(1+(int)(dX * (m_selectionStart + m_selectionLength - m_startPosition)));
+
+      QImage img(r.size(), QImage::Format_RGB32);
+      QPainter painter1(&img);
+      painter1.drawPixmap(QPoint(0, 0), m_pixmap, r);
+      img.invertPixels();
+      painter.drawImage(r.left(), r.top(), img);
 
       /*
       QPixmap sel = m_pixmap.copy(r);
@@ -111,8 +119,10 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
       painter1.fillRect(sel.rect(), Qt::black);
       painter.drawPixmap(r.left(), r.top(), sel);
       */
+      /*
       QBrush brush(Qt::white, Qt::Dense5Pattern);
       painter.fillRect(r, brush);
+      */
     }
 
   }
@@ -244,6 +254,8 @@ void WaveFormWidget :: drawPixmap(const QSize& size)
   QVector<QLine> lines(channels);
   QVector<int> baseY(channels);
   //painter.drawLine(QPoint(0,100), QPoint(m_pixmap.width(), 100));
+  QPen pen1(Qt::yellow);
+  painter.setPen(pen1);
   for(int i = 0; i < channels; i++)
   {
     baseY[i] = (int)(dY + dY * i * 2);
@@ -254,7 +266,6 @@ void WaveFormWidget :: drawPixmap(const QSize& size)
 
   //Draw ruler
 #if 1
-  QPen pen1(Qt::yellow);
   painter.setPen(pen1);
   for(qint64 p = 0; timeRuler && p < m_windowSize; p++)
     if(!((m_startPosition + p) % timeRuler))
