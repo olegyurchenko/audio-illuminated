@@ -7,6 +7,7 @@ namespace Ui {
     class EditorWindow;
 }
 
+/*----------------------------------------------------------------------------*/
 class EditorWindow : public QMainWindow
 {
     Q_OBJECT
@@ -17,6 +18,10 @@ public:
 
 private:
     Ui::EditorWindow *ui;
+
+  public slots:
+    void onSetWindwoDuration(const QString& txt);
 };
+/*----------------------------------------------------------------------------*/
 
 #endif // EDITOR_WINDOW_H
