@@ -37,6 +37,11 @@ WaveFormWidget :: WaveFormWidget(QWidget *parent)
 
   m_wav = NULL;
   m_in = NULL;
+
+  m_bgColor = Qt::black;
+  m_fgColor = Qt::white;
+  m_gridColor = Qt::yellow;
+  m_markerColor = Qt::green;
 }
 /*----------------------------------------------------------------------------*/
 WaveFormWidget :: ~WaveFormWidget()
@@ -83,12 +88,12 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
 {
   QPainter painter(this);
 
-  painter.fillRect(rect(), Qt::black);
+  painter.fillRect(rect(), m_bgColor);
   painter.drawPixmap(0, 0, m_pixmap);
   if(m_windowSize)
   {
-    qreal dX = (qreal)m_pixmap.width() / (qreal) m_windowSize;
-    QPen pen(Qt::green);
+    qreal dX = (qreal)width() / (qreal) m_windowSize;
+    QPen pen(m_markerColor);
     painter.setPen(pen);
     //Draw position line
     painter.drawLine(QPointF(dX * (m_position - m_startPosition), 0), QPointF(dX * (m_position - m_startPosition), height()));
@@ -217,7 +222,10 @@ void WaveFormWidget :: setFilePosition(qint64 pos)
   if(modified && (m_position > m_startPosition + m_windowSize || m_position < m_startPosition) || m_pixmap.size() != size())
   {
     if(m_position > m_startPosition + m_windowSize || m_position < m_startPosition)
+    {
       m_startPosition = m_windowSize * (m_position / m_windowSize);
+      emit windowStartChanged(m_startPosition);
+    }
 
     modified = true;
     drawPixmap(size());
@@ -243,10 +251,10 @@ void WaveFormWidget :: drawPixmap(const QSize& size)
 
   int channels = m_wav->format().channels();
 
-  QPen pen(Qt::white);
+  QPen pen(m_fgColor);
   painter.setPen(pen);
 
-  painter.fillRect(m_pixmap.rect(), Qt::black);
+  painter.fillRect(m_pixmap.rect(), m_fgColor);
 
   qreal dX = (qreal)m_pixmap.width() / (qreal) m_windowSize;
   qreal dY = (qreal)m_pixmap.height() / (2 * (qreal) channels);
@@ -254,7 +262,7 @@ void WaveFormWidget :: drawPixmap(const QSize& size)
   QVector<QLine> lines(channels);
   QVector<int> baseY(channels);
   //painter.drawLine(QPoint(0,100), QPoint(m_pixmap.width(), 100));
-  QPen pen1(Qt::yellow);
+  QPen pen1(m_gridColor);
   painter.setPen(pen1);
   for(int i = 0; i < channels; i++)
   {
@@ -300,5 +308,53 @@ qint64 WaveFormWidget :: pixel2audio(int x) const
 
   qreal dX = (qreal) m_windowSize/(qreal)width();
   return (qint64)((qreal)x * dX) + m_startPosition;
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: setBgColor(QColor c)
+{
+  if(m_bgColor == c)
+    return;
+  m_bgColor = c;
+  drawPixmap(size());
+  update();
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: setFgColor(QColor c)
+{
+  if(m_fgColor == c)
+    return;
+  m_fgColor = c;
+  drawPixmap(size());
+  update();
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: setGridColor(QColor c)
+{
+  if(m_gridColor == c)
+    return;
+  m_gridColor = c;
+  drawPixmap(size());
+  update();
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: setMarkerColor(QColor c)
+{
+  if(m_markerColor == c)
+    return;
+  m_markerColor = c;
+  update();
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: setWindowDuration(qint64 duration)
+{
+  if(m_windowDurationUs == duration)
+    return;
+  m_windowDurationUs = duration;
+  if(m_wav != NULL)
+  {
+    m_windowSize = m_wav->length(m_windowDurationUs);
+    drawPixmap(size());
+    update();
+  }
 }
 /*----------------------------------------------------------------------------*/

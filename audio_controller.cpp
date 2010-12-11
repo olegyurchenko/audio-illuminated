@@ -16,6 +16,8 @@
 #include <QAudioOutput>
 #include <QtDebug>
 /*----------------------------------------------------------------------------*/
+AudioController* audioController = NULL;
+/*----------------------------------------------------------------------------*/
 AudioController :: AudioController(QObject *parent)
   :QThread(parent)
 {

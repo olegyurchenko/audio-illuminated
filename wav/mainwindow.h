@@ -32,7 +32,6 @@ protected slots:
 private:
   Ui::MainWindow *ui;
   WaveFormWidget* waveForm;
-  AudioController* audioController;
   QScrollBar *waveScroll;
 };
 
