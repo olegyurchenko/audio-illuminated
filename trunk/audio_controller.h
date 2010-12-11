@@ -82,6 +82,7 @@ signals:
   void stopPlay();
 };
 
+extern AudioController* audioController;
 /*----------------------------------------------------------------------------*/
 #endif /*AUDIO_CONTROLLER_H_1291799006*/
 

@@ -18,9 +18,14 @@
 #include <QObject>
 #include <effect_plugin_if.h>
 #include <QHash>
+#include <QList>
 class EffectController : public QObject
 {
   Q_OBJECT
+public:
+  typedef QList<EffectProperties> PropList;
+  typedef QList<EffectProperties*> PropPointList;
+
 private:
   typedef struct
   {
@@ -40,14 +45,33 @@ private:
   ControllerMap m_controllers;
   EffectMap m_effects;
 
+  PropList m_properties;
+  int m_unique;
+
+  PropPointList m_lastSelect;
+  qint64 m_windowStart;
+  qint64 m_windowSize;
+
+  qint64 m_lastPlayPosition;
+
+
 public:
   EffectController(QObject *parent = NULL);
   virtual ~EffectController();
 
   void loadPlugins();
+  int unique() {return ++m_unique;}
+  EffectProperties *newEffect(int effectId, int channel);
+  PropPointList& selectEffects(qint64 startUs, qint64 sizeUs);
+
+protected slots:
+  void onPlayPosition(qint64 samples);
+  void onStartPlay();
+  void onStopPlay();
 
 };
 
+extern EffectController* effectController;
 /*----------------------------------------------------------------------------*/
 #endif /*EFFECT_CONTROLLER_H_1291914492*/
 

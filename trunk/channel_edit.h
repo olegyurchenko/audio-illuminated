@@ -1,66 +1,59 @@
 /*----------------------------------------------------------------------------*/
 /**
-* @pkg waveform
+* @pkg channel_edit
 */
 /**
-* Waveform widget.
+* Widget to edit illumination channel.
 *
-* Long description of waveform.<br>
-* (C) T&T, Kiev, Ukraine 2010.<br>
-* started 07.12.2010 13:07:57<br>
-* @pkgdoc waveform
-* @author oleg
+* Copyright (C) 2010 Oleg Yurchenko, Kiev, Ukraine.<br>
+* started 10.12.2010 10:23:23<br>
+* @pkgdoc channel_edit
 * @version 0.01 
 */
 /*----------------------------------------------------------------------------*/
-#ifndef WAVEFORM_H_1291720077
-#define WAVEFORM_H_1291720077
+#ifndef CHANNEL_EDIT_H_1291969403
+#define CHANNEL_EDIT_H_1291969403
 /*----------------------------------------------------------------------------*/
 #include <QWidget>
-#include <QPixmap>
-#include <QVector>
+#include <wav_file.h>
 #include <QColor>
+#include <effect_controller.h>
 
-class WavFile;
-class QFile;
-/*----------------------------------------------------------------------------*/
-class WaveFormWidget : public QWidget
+class ChannelEdit: public QWidget
 {
   Q_OBJECT
-
 private:
+  typedef QWidget Inherited;
+
   qint64 m_startPosition;
   qint64 m_windowDurationUs;
   qint64 m_timeRuler;
   qint64 m_windowSize;
   qint64 m_position;
 
-  qint64 m_selectionStart;
-  qint64 m_selectionLength;
-
   QColor m_bgColor;
   QColor m_fgColor;
   QColor m_gridColor;
   QColor m_markerColor;
+  int m_channelId;
 
-  WavFile *m_wav;
-  QFile *m_in;
-  QPixmap m_pixmap;
+  bool m_audioOpened;
+
+  EffectController::PropPointList effects;
 
 public:
-  WaveFormWidget(QWidget *parent);
-  virtual ~WaveFormWidget();
+  ChannelEdit(QWidget *parent);
+  virtual ~ChannelEdit();
 
-  void setWavFile(WavFile *w);
   qint64 windowDuration() const {return m_windowDurationUs;}
   qint64 windowLength() const {return m_windowSize;}
-  qint64 selectionStart() const {return m_selectionStart;}
-  qint64 selectionLength() const {return m_selectionLength;}
 
   QColor bgColor(){return m_bgColor;}
   QColor fgColor(){return m_fgColor;}
   QColor gridColor(){return m_gridColor;}
   QColor markerColor(){return m_markerColor;}
+
+  int channelId() {return m_channelId;}
 
 protected:
   virtual void paintEvent(QPaintEvent *event);
@@ -69,13 +62,9 @@ protected:
   virtual void mouseReleaseEvent(QMouseEvent * event);
   virtual void mouseMoveEvent (QMouseEvent * event);
 
-  void drawPixmap(const QSize& size);
-  qint64 pixel2audio(int x) const;
-  void setStartSelection(int x);
-  void setEndSelection(int x);
-
 public slots:
   void setFilePosition(qint64 position);
+  void setWindowStart(qint64 position);
   void wavFileOpened(WavFile *w);
   void wavFileClosed();
   void setBgColor(QColor c);
@@ -83,11 +72,12 @@ public slots:
   void setGridColor(QColor c);
   void setMarkerColor(QColor c);
   void setWindowDuration(qint64 duration);
-signals:
-  void windowStartChanged(qint64);
+  void setWindowStart(qint64 quants);
+  void setWindowLength(qint64 quants);
+  void setChannelId(int i);
 
 };
 
 /*----------------------------------------------------------------------------*/
-#endif /*WAVEFORM_H_1291720077*/
+#endif /*CHANNEL_EDIT_H_1291969403*/
 
