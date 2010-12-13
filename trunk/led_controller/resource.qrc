@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/led_ctrl.png</file>
+    </qresource>
+</RCC>

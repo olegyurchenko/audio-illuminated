@@ -26,7 +26,6 @@ public:
   typedef QList<EffectProperties> PropList;
   typedef QList<EffectProperties*> PropPointList;
 
-private:
   typedef struct
   {
     ControllerPluginInterface *iface;
@@ -42,6 +41,7 @@ private:
   } Effect;
   typedef QHash<int, Effect> EffectMap;
 
+private:
   ControllerMap m_controllers;
   EffectMap m_effects;
 
@@ -63,6 +63,8 @@ public:
   int unique() {return ++m_unique;}
   EffectProperties *newEffect(int effectId, int channel);
   PropPointList& selectEffects(qint64 startUs, qint64 sizeUs);
+  ControllerMap& controllers(){return m_controllers;}
+  EffectMap& effects(){return m_effects;}
 
 protected slots:
   void onPlayPosition(qint64 samples);

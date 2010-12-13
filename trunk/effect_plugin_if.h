@@ -54,16 +54,18 @@ public:
   void setChannel(int c){m_channel = c;}
 };
 /*----------------------------------------------------------------------------*/
-class EffectPropertyPanel
+class EffectPropertyPanel : public QWidget
 {
 public:
+  EffectPropertyPanel(QWidget *parent) : QWidget(parent) {}
   virtual ~EffectPropertyPanel(){}
   virtual void propertyEdit(EffectProperties *prop) = 0;
 };
 /*----------------------------------------------------------------------------*/
-class EffectDemoPanel
+class EffectDemoPanel : public QWidget
 {
 public:
+  EffectDemoPanel(QWidget *parent) : QWidget(parent) {}
   virtual ~EffectDemoPanel(){}
   virtual void effectStart(const EffectProperties &prop) = 0;
 };
@@ -90,7 +92,7 @@ public:
   virtual const QPixmap& controllerIcon() = 0;
   virtual void effectStart(const EffectProperties &prop) = 0;
   virtual QWidget* createPropertyPanel(QWidget *parent) = 0;
-  virtual EffectDemoPanel* createDemoPanelPanel(QWidget *parent) = 0;
+  virtual EffectDemoPanel* createDemoPanel(QWidget *parent) = 0;
 };
 
 /*----------------------------------------------------------------------------*/
