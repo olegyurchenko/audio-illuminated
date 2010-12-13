@@ -54,12 +54,12 @@ private:
 
   qint64 m_lastPlayPosition;
 
+  void loadPlugins();
 
 public:
   EffectController(QObject *parent = NULL);
   virtual ~EffectController();
 
-  void loadPlugins();
   int unique() {return ++m_unique;}
   EffectProperties *newEffect(int effectId, int channel);
   PropPointList& selectEffects(qint64 startUs, qint64 sizeUs);

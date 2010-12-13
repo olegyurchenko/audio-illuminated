@@ -33,6 +33,7 @@ EffectController :: EffectController(QObject *parent)
   newEffect(1, 1)->setTimeStart(150000);
   newEffect(1, 1)->setTimeStart(300000);
   //!!DEBUG
+  loadPlugins();
 }
 /*----------------------------------------------------------------------------*/
 EffectController :: ~EffectController()

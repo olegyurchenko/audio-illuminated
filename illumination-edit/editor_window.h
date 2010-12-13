@@ -2,6 +2,8 @@
 #define EDITOR_WINDOW_H
 
 #include <QMainWindow>
+#include <QList>
+#include <QToolBar>
 
 namespace Ui {
     class EditorWindow;
@@ -18,9 +20,24 @@ public:
 
 private:
     Ui::EditorWindow *ui;
+    typedef QList<QToolBar *>EffectBars;
+    EffectBars effectBars;
 
+    QToolBar *addEffectBar(const QString& text);
+    QAction *selectEffectAction;
+
+  protected slots:
+    void onSelectEfectAction();
   public slots:
-    void onSetWindwoDuration(const QString& txt);
+    void onSetWindowDuration(const QString& txt);
+    void onError(const QString& txt);
+
+    void onFileNew();
+    void onFileOpen();
+    void onFileSave();
+    void onFileSaveAs();
+    void onPlayerPlay();
+    void onPlayerStop();
 };
 /*----------------------------------------------------------------------------*/
 

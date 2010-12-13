@@ -54,6 +54,9 @@ void ChannelEdit :: paintEvent(QPaintEvent *event)
     QPen pen1(m_fgColor);
     painter.setPen(pen1);
 
+    QBrush brush(Qt::yellow);
+    painter.setBrush(brush);
+
     int size = effects.size();
     for(int i = 0; i < size; i++)
     {
@@ -68,13 +71,10 @@ void ChannelEdit :: paintEvent(QPaintEvent *event)
 
         qreal radius = (height() - 10) / 2;
         qreal left = pos - radius;
-        qreal top = 10;
+        qreal top = 5;
 
         QRectF r(left, top, 2 * radius, 2 * radius);
         painter.drawEllipse(r);
-
-
-
       }
     }
   }
@@ -105,15 +105,28 @@ void ChannelEdit :: mouseMoveEvent (QMouseEvent * event)
 void ChannelEdit :: setFilePosition(qint64 position)
 {
   m_position = position;
+  update();
+}
+/*----------------------------------------------------------------------------*/
+void ChannelEdit :: updateData()
+{
+  if(m_audioOpened)
+  {
+    m_windowSize = audioController->duration2quants(m_windowDurationUs);
+    qint64 start = audioController->quants2duration(m_startPosition);
+    effects = effectController->selectEffects(start, m_windowDurationUs);
+    setMouseTracking(true);
+    update();
+  }
+  else
+    setMouseTracking(false);
+
 }
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: wavFileOpened(WavFile *w)
 {
   m_audioOpened = true;
-  m_windowSize = audioController->duration2quants(m_windowDurationUs);
-  qint64 start = audioController->quants2duration(m_startPosition);
-  effects = effectController->selectEffects(start, m_windowDurationUs);
-  update();
+  updateData();
 }
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: wavFileClosed()
@@ -150,16 +163,10 @@ void ChannelEdit :: setMarkerColor(QColor c)
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: setWindowDuration(qint64 duration)
 {
-  if(m_windowDuration == duration)
+  if(m_windowDurationUs == duration)
     return;
-  m_windowDuration = duration;
-  if(m_audioOpened)
-  {
-    m_windowSize = audioController->duration2quants(duration);
-    qint64 start = audioController->quants2duration(m_startPosition);
-    effects = effectController->selectEffects(start, m_windowDurationUs);
-    update();
-  }
+  m_windowDurationUs = duration;
+  updateData();
 }
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: setWindowStart(qint64 quants)
@@ -167,12 +174,7 @@ void ChannelEdit :: setWindowStart(qint64 quants)
   if(m_startPosition == quants)
     return;
   m_startPosition = quants;
-  if(m_audioOpened)
-  {
-    qint64 start = audioController->quants2duration(m_startPosition);
-    effects = effectController->selectEffects(start, m_windowDurationUs);
-    update();
-  }
+  updateData();
 }
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: setChannelId(int i)

@@ -8,6 +8,8 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     audioController = new AudioController(&a);
     effectController = new EffectController(&a);
+    //a.setStyle("Plastique");
+    a.setStyle("Cleanlooks");
 
     EditorWindow w;
     w.show();
