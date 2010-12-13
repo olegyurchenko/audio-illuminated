@@ -62,9 +62,10 @@ protected:
   virtual void mouseReleaseEvent(QMouseEvent * event);
   virtual void mouseMoveEvent (QMouseEvent * event);
 
+  void updateData();
+
 public slots:
   void setFilePosition(qint64 position);
-  void setWindowStart(qint64 position);
   void wavFileOpened(WavFile *w);
   void wavFileClosed();
   void setBgColor(QColor c);
@@ -73,7 +74,6 @@ public slots:
   void setMarkerColor(QColor c);
   void setWindowDuration(qint64 duration);
   void setWindowStart(qint64 quants);
-  void setWindowLength(qint64 quants);
   void setChannelId(int i);
 
 };

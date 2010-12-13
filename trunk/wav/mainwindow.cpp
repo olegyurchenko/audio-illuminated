@@ -19,6 +19,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionPlay, SIGNAL(triggered()), this, SLOT(onStart()));
     connect(ui->actionStop, SIGNAL(triggered()), this, SLOT(onStop()));
 
+    ui->actionPlay->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    ui->actionStop->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
 
     QVBoxLayout* vbLayout = new QVBoxLayout(ui->centralWidget);
     waveForm = new WaveFormWidget(ui->centralWidget);

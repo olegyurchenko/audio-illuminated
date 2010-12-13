@@ -26,7 +26,7 @@ class EditPanel : public QWidget
   Q_OBJECT
 private:
   QVBoxLayout* vbLayout;
-  WaveFormWidget *waveForm;
+  WaveFormWidget *m_waveForm;
   QScrollBar *hScroll;
   typedef QVector<ChannelEdit *> EditVector;
   EditVector edits;
@@ -34,6 +34,19 @@ private:
 public:
   EditPanel(QWidget *parent);
   virtual ~EditPanel();
+  void newChannel();
+  WaveFormWidget *waveForm() {return m_waveForm;}
+protected slots:
+  void onWavOpen(WavFile *);
+  void onWavClose();
+  void onPlayPosition(qint64 samples);
+  void onStartPlay();
+  void onStopPlay();
+  void onWindowStartChanged(qint64 pos);
+  void onScrollChanged(int pos);
+public slots:
+  void setWindowDuration(qint64 duration);
+
 };
 
 /*----------------------------------------------------------------------------*/

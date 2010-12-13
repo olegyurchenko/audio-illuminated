@@ -254,7 +254,7 @@ void WaveFormWidget :: drawPixmap(const QSize& size)
   QPen pen(m_fgColor);
   painter.setPen(pen);
 
-  painter.fillRect(m_pixmap.rect(), m_fgColor);
+  painter.fillRect(m_pixmap.rect(), m_bgColor);
 
   qreal dX = (qreal)m_pixmap.width() / (qreal) m_windowSize;
   qreal dY = (qreal)m_pixmap.height() / (2 * (qreal) channels);
