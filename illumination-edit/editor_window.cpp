@@ -90,6 +90,9 @@ EditorWindow::EditorWindow(QWidget *parent) :
       effectAction->setCheckable(true);
       effectAction->setChecked(false);
       effectAction->setProperty("effectId", eff->iface->effectId());
+
+      connect(effectAction, SIGNAL(triggered()), this, SLOT(onAddAction()));
+
       effectGroup->addAction(effectAction);
       bar->addAction(effectAction);
     }
@@ -114,7 +117,15 @@ QToolBar *EditorWindow::addEffectBar(const QString& text)
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onSelectEfectAction()
 {
-
+  ChannelEdit::setMode(ChannelEdit::SelectMode);
+  emit changeEditMode();
+}
+/*----------------------------------------------------------------------------*/
+void EditorWindow::onAddAction()
+{
+  ChannelEdit::setMode(ChannelEdit::AddMode);
+  ChannelEdit::setEffectToAdd(sender()->property("effectId").toInt());
+  emit changeEditMode();
 }
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onSetWindowDuration(const QString& txt)

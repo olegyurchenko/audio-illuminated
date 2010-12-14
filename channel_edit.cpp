@@ -16,10 +16,13 @@
 #include <QRectF>
 #include <audio_controller.h>
 /*----------------------------------------------------------------------------*/
+static ChannelEdit::Mode m_mode = ChannelEdit::SelectMode;
+static int m_effectToAdd = 0;
+
 ChannelEdit :: ChannelEdit(QWidget *parent)
   :Inherited(parent)
 {
-  setFixedHeight(50);
+  setFixedHeight(40);
   m_audioOpened = false;
   m_startPosition = 0;
   m_windowDurationUs = 1000000;
@@ -205,4 +208,35 @@ void ChannelEdit :: setChannelId(int i)
     update();
 }
 /*----------------------------------------------------------------------------*/
-
+void ChannelEdit :: onChangeEditMode()
+{
+  switch(m_mode)
+  {
+  case SelectMode:
+    setCursor(QCursor(Qt::ArrowCursor));
+    break;
+  case AddMode:
+    setCursor(QCursor(effectController->effectIcon(m_effectToAdd).scaledToWidth(16)));
+  }
+}
+/*----------------------------------------------------------------------------*/
+ChannelEdit::Mode ChannelEdit :: mode()
+{
+  return m_mode;
+}
+/*----------------------------------------------------------------------------*/
+void ChannelEdit :: setMode(ChannelEdit::Mode m)
+{
+  m_mode = m;
+}
+/*----------------------------------------------------------------------------*/
+int ChannelEdit :: effectToAdd()
+{
+  return m_effectToAdd;
+}
+/*----------------------------------------------------------------------------*/
+void ChannelEdit :: setEffectToAdd(int effectId)
+{
+  m_effectToAdd = effectId;
+}
+/*----------------------------------------------------------------------------*/

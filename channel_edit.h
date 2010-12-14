@@ -77,6 +77,19 @@ public slots:
   void setWindowDuration(qint64 duration);
   void setWindowStart(qint64 quants);
   void setChannelId(int i);
+  void onChangeEditMode();
+
+public: //static
+  typedef enum
+  {
+    SelectMode,
+    AddMode
+  } Mode;
+
+  static Mode mode();
+  static void setMode(Mode m);
+  static int effectToAdd();
+  static void setEffectToAdd(int effectId);
 
 };
 
