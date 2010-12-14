@@ -70,6 +70,7 @@ void EditPanel :: newChannel()
   connect(audioController, SIGNAL(wavOpen(WavFile*)), edit, SLOT(wavFileOpened(WavFile*)));
   connect(audioController, SIGNAL(wavClose()), edit, SLOT(wavFileClosed()));
   connect(audioController, SIGNAL(playPosition(qint64)), edit, SLOT(setFilePosition(qint64)));
+  connect(parent()->parent()->parent(), SIGNAL(changeEditMode()), edit, SLOT(onChangeEditMode()));
 }
 /*----------------------------------------------------------------------------*/
 void EditPanel :: onWavOpen(WavFile *)

@@ -28,6 +28,7 @@ private:
 
   protected slots:
     void onSelectEfectAction();
+    void onAddAction();
   public slots:
     void onSetWindowDuration(const QString& txt);
     void onError(const QString& txt);
@@ -38,6 +39,8 @@ private:
     void onFileSaveAs();
     void onPlayerPlay();
     void onPlayerStop();
+signals:
+    void changeEditMode();
 };
 /*----------------------------------------------------------------------------*/
 
