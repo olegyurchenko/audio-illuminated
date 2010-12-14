@@ -67,6 +67,7 @@ void EffectController :: loadPlugins()
         Effect data;
         data.iface = effect;
         data.propertyPanel = NULL;
+        //data.pixmap = effect->effectIcon();
         m_effects[data.iface->effectId()] = data;
         continue;
       }
@@ -77,6 +78,7 @@ void EffectController :: loadPlugins()
         data.iface = ctrl;
         data.demoPanel = NULL;
         data.propertyPanel = NULL;
+        //data.pixmap = QPixmap(ctrl->controllerIcon());
         m_controllers[data.iface->controllerId()] = data;
         continue;
       }
@@ -142,3 +144,13 @@ void EffectController :: onStopPlay()
 {
 }
 /*----------------------------------------------------------------------------*/
+const QPixmap& EffectController :: effectIcon(int effectId)
+{
+  static QPixmap pixmap;
+  EffectMap::iterator it = m_effects.find(effectId);
+  if(it != m_effects.end())
+    return it.value().iface->effectIcon();
+  return pixmap;
+}
+/*----------------------------------------------------------------------------*/
+

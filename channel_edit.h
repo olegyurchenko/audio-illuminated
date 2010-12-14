@@ -18,6 +18,7 @@
 #include <wav_file.h>
 #include <QColor>
 #include <effect_controller.h>
+#include <QPolygon>
 
 class ChannelEdit: public QWidget
 {
@@ -63,6 +64,7 @@ protected:
   virtual void mouseMoveEvent (QMouseEvent * event);
 
   void updateData();
+  QPolygon createPolygon(int x);
 
 public slots:
   void setFilePosition(qint64 position);

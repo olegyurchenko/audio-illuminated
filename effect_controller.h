@@ -31,6 +31,7 @@ public:
     ControllerPluginInterface *iface;
     QWidget *propertyPanel;
     EffectDemoPanel *demoPanel;
+    //QPixmap pixmap;
   } Controller;
   typedef QHash<int, Controller> ControllerMap;
 
@@ -38,6 +39,7 @@ public:
   {
     EffectPluginInterface *iface;
     EffectPropertyPanel *propertyPanel;
+    //QPixmap pixmap;
   } Effect;
   typedef QHash<int, Effect> EffectMap;
 
@@ -65,6 +67,7 @@ public:
   PropPointList& selectEffects(qint64 startUs, qint64 sizeUs);
   ControllerMap& controllers(){return m_controllers;}
   EffectMap& effects(){return m_effects;}
+  const QPixmap& effectIcon(int effectId);
 
 protected slots:
   void onPlayPosition(qint64 samples);
