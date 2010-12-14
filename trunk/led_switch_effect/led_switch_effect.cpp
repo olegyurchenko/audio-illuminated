@@ -20,6 +20,7 @@ Q_EXPORT_PLUGIN2(EffectPluginInterface, SimpleSwitchLedEffect)
 SimpleSwitchLedEffect :: SimpleSwitchLedEffect(QObject *parent)
   :QObject(parent)
 {
+  m_effectId = 1;
   m_effectName = tr("Simple switch led");
   m_effectCathegory = tr("Led effects");
   m_effectDescription = tr("Simple switch led effect for witch on/off led on led controller");

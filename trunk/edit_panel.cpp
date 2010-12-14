@@ -35,7 +35,7 @@ EditPanel :: EditPanel(QWidget *parent)
   connect(audioController, SIGNAL(wavClose()), m_waveForm, SLOT(wavFileClosed()));
   connect(audioController, SIGNAL(playPosition(qint64)), m_waveForm, SLOT(setFilePosition(qint64)));
 
-  for(int i = 0; i < 1; i++)
+  for(int i = 0; i < 2; i++)
   {
     newChannel();
   }

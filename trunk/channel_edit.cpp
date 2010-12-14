@@ -61,25 +61,46 @@ void ChannelEdit :: paintEvent(QPaintEvent *event)
     for(int i = 0; i < size; i++)
     {
       EffectProperties *prop = effects[i];
+      int pos = (int)(dX * (audioController->duration2quants(prop->timeStart()) - m_startPosition));
+      painter.drawLine(QPoint(pos, 0), QPoint(pos, height()));
       if(prop->channel() == m_channelId)
       {
         //draw effect
-        qreal pos = dX * (audioController->duration2quants(prop->timeStart()) - m_startPosition);
-
-        painter.drawLine(QPointF(pos, 0), QPointF(pos, height()));
-
-
+        QPolygon pol = createPolygon(pos);
+        painter.drawPolygon(pol);
+        painter.drawPixmap(QRect(pos - 15, 1, 30, 30), effectController->effectIcon(prop->effectId()));
+/*
         qreal radius = (height() - 10) / 2;
         qreal left = pos - radius;
         qreal top = 5;
 
         QRectF r(left, top, 2 * radius, 2 * radius);
         painter.drawEllipse(r);
+*/
       }
     }
   }
 
   Inherited::paintEvent(event);
+}
+/*----------------------------------------------------------------------------*/
+QPolygon ChannelEdit :: createPolygon(int x)
+{
+  QPolygon pol;
+  const int w = 32;
+  const int h = 32;
+  pol.append(QPoint(x-w/2, 0));
+  pol.append(QPoint(x+w/2, 0));
+  pol.append(QPoint(x+w/2, h));
+  pol.append(QPoint(x+3, rect().bottom() - 5));
+  pol.append(QPoint(x+2, rect().bottom() - 3));
+  pol.append(QPoint(x+1, rect().bottom() - 1));
+  pol.append(QPoint(x, rect().bottom()));
+  pol.append(QPoint(x-1, rect().bottom() - 1));
+  pol.append(QPoint(x-2, rect().bottom() - 3));
+  pol.append(QPoint(x-3, rect().bottom() - 5));
+  pol.append(QPoint(x-w/2, h));
+  return pol;
 }
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: resizeEvent(QResizeEvent *event)
