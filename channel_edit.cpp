@@ -15,9 +15,8 @@
 #include <QPainter>
 #include <QRectF>
 #include <audio_controller.h>
+#include <QMouseEvent>
 /*----------------------------------------------------------------------------*/
-static ChannelEdit::Mode m_mode = ChannelEdit::SelectMode;
-static int m_effectToAdd = 0;
 
 ChannelEdit :: ChannelEdit(QWidget *parent)
   :Inherited(parent)
@@ -57,8 +56,6 @@ void ChannelEdit :: paintEvent(QPaintEvent *event)
     QPen pen1(m_fgColor);
     painter.setPen(pen1);
 
-    QBrush brush(Qt::yellow);
-    painter.setBrush(brush);
 
     int size = effects.size();
     for(int i = 0; i < size; i++)
@@ -69,6 +66,17 @@ void ChannelEdit :: paintEvent(QPaintEvent *event)
       if(prop->channel() == m_channelId)
       {
         //draw effect
+        if(effectController->effectSelected() == prop->id())
+        {
+          QBrush brush(Qt::darkBlue);
+          painter.setBrush(brush);
+        }
+        else
+        {
+          QBrush brush(Qt::yellow);
+          painter.setBrush(brush);
+        }
+
         QPolygon pol = createPolygon(pos);
         painter.drawPolygon(pol);
         painter.drawPixmap(QRect(pos - 15, 1, 30, 30), effectController->effectIcon(prop->effectId()));
@@ -113,6 +121,40 @@ void ChannelEdit :: resizeEvent(QResizeEvent *event)
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: mousePressEvent(QMouseEvent *event)
 {
+  if(m_audioOpened)
+  {
+    qreal dX = (qreal)width() / (qreal) m_windowSize;
+    if(effectController->mode() == EffectController::SelectMode)
+    {
+      int size = effects.size();
+      int i;
+      for(i = 0; i < size; i++)
+      {
+        EffectProperties *prop = effects[i];
+        if(prop->channel() == m_channelId)
+        {
+          int pos = (int)(dX * (audioController->duration2quants(prop->timeStart()) - m_startPosition));
+          QPolygon pol = createPolygon(pos);
+          if(pol.containsPoint(event->pos(),Qt::OddEvenFill))
+          {
+            effectController->selectEffect(prop->id());
+            break;
+          }
+        }
+      }
+      if(i >= size)
+        effectController->selectEffect(-1);
+    }
+    else
+    if(effectController->mode() == EffectController::AddMode)
+    {
+      qreal d =  (qreal) m_windowSize/ (qreal)width();
+      EffectProperties *prop = effectController->newEffect(effectController->effectToAdd(), m_channelId);
+      prop->setTimeStart(audioController->quants2duration(m_startPosition + (qint64)(event->pos().x() * d)));
+      effectController->selectEffect(prop->id());
+    }
+  }
+
   Inherited::mousePressEvent(event);
 }
 /*----------------------------------------------------------------------------*/
@@ -210,33 +252,19 @@ void ChannelEdit :: setChannelId(int i)
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: onChangeEditMode()
 {
-  switch(m_mode)
+  switch(effectController->mode())
   {
-  case SelectMode:
+  case EffectController::SelectMode:
     setCursor(QCursor(Qt::ArrowCursor));
     break;
-  case AddMode:
-    setCursor(QCursor(effectController->effectIcon(m_effectToAdd).scaledToWidth(16)));
+  case EffectController::AddMode:
+    setCursor(QCursor(effectController->effectIcon(effectController->effectToAdd()).scaledToWidth(16)));
   }
 }
 /*----------------------------------------------------------------------------*/
-ChannelEdit::Mode ChannelEdit :: mode()
+void ChannelEdit :: onSelectionChanged()
 {
-  return m_mode;
-}
-/*----------------------------------------------------------------------------*/
-void ChannelEdit :: setMode(ChannelEdit::Mode m)
-{
-  m_mode = m;
-}
-/*----------------------------------------------------------------------------*/
-int ChannelEdit :: effectToAdd()
-{
-  return m_effectToAdd;
-}
-/*----------------------------------------------------------------------------*/
-void ChannelEdit :: setEffectToAdd(int effectId)
-{
-  m_effectToAdd = effectId;
+  updateData();
+  update();
 }
 /*----------------------------------------------------------------------------*/
