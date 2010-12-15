@@ -30,13 +30,15 @@ private:
   QVBoxLayout* vbLayout;
   WaveFormWidget *m_waveForm;
   QScrollBar *hScroll;
-  typedef QVector<ChannelEdit *> EditVector;
-  EditVector edits;
+//  typedef QVector<ChannelEdit *> EditVector;
+//  EditVector edits;
+  ChannelEdit *m_channelEdit;
+  int m_channelId;
 
 public:
   EditPanel(QWidget *parent);
   virtual ~EditPanel();
-  void newChannel();
+  //void newChannel();
   WaveFormWidget *waveForm() {return m_waveForm;}
 protected slots:
   void onWavOpen(WavFile *);
@@ -48,6 +50,7 @@ protected slots:
   void onScrollChanged(int pos);
 public slots:
   void setWindowDuration(qint64 duration);
+  void setChannel(int c);
 
 };
 

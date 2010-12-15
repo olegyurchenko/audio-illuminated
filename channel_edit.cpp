@@ -16,12 +16,14 @@
 #include <QRectF>
 #include <audio_controller.h>
 #include <QMouseEvent>
+#include <QKeyEvent>
 /*----------------------------------------------------------------------------*/
 
 ChannelEdit :: ChannelEdit(QWidget *parent)
   :Inherited(parent)
 {
   setFixedHeight(40);
+  setFocusPolicy( Qt::StrongFocus);
   m_audioOpened = false;
   m_startPosition = 0;
   m_windowDurationUs = 1000000;
@@ -45,6 +47,10 @@ void ChannelEdit :: paintEvent(QPaintEvent *event)
   QPainter painter(this);
 
   painter.fillRect(rect(), m_bgColor);
+  painter.setPen(Qt::darkCyan);
+  painter.drawText(QRectF(0,0,50, height()),
+                   Qt::AlignCenter,
+                   tr("Channel\n%1").arg(QString::number(m_channelId)));
   if(m_audioOpened)
   {
     qreal dX = (qreal)width() / (qreal) m_windowSize;
@@ -64,7 +70,21 @@ void ChannelEdit :: paintEvent(QPaintEvent *event)
       EffectProperties *prop = effects[i];
       int pos = (int)(dX * (audioController->duration2quants(prop->timeStart()) - m_startPosition));
       painter.drawLine(QPoint(pos, 0), QPoint(pos, height()));
-      if(prop->channel() == m_channelId)
+      if(prop->channel() < m_channelId)
+      {
+        //draw bottom arrow
+        painter.drawLine(QPoint(pos - 2, height() - 8), QPoint(pos, height()));
+        painter.drawLine(QPoint(pos + 2, height() - 8), QPoint(pos, height()));
+      }
+      else
+      if(prop->channel() > m_channelId)
+      {
+        //draw top arrow
+        painter.drawLine(QPoint(pos - 2, 8), QPoint(pos, 0));
+        painter.drawLine(QPoint(pos + 2, 8), QPoint(pos, 0));
+      }
+      else
+//      if(prop->channel() == m_channelId)
       {
         //draw effect
         if(effectController->effectSelected() == prop->id())
@@ -183,6 +203,25 @@ void ChannelEdit :: mouseMoveEvent (QMouseEvent * event)
   Inherited::mouseMoveEvent(event);
 }
 /*----------------------------------------------------------------------------*/
+void ChannelEdit :: keyPressEvent(QKeyEvent *event)
+{
+  if(m_audioOpened)
+  {
+    switch(event->key())
+    {
+    case Qt::Key_Delete:
+      if(effectController->effectSelected() > 0)
+        effectController->deleteEffect(effectController->effectSelected());
+      break;
+/*
+    case Qt::Key_Left:
+    case Qt::Key_Right:
+*/
+    }
+  }
+  Inherited::keyPressEvent(event);
+}
+/*----------------------------------------------------------------------------*/
 void ChannelEdit :: setFilePosition(qint64 position)
 {
   m_position = position;
@@ -261,9 +300,11 @@ void ChannelEdit :: setWindowStart(qint64 quants)
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: setChannelId(int i)
 {
-  m_channelId = i;
-  if(m_audioOpened)
-    update();
+ if(m_channelId == i)
+   return;
+ m_channelId = i;
+ effectController->selectEffect(-1);
+ update();
 }
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: onChangeEditMode()

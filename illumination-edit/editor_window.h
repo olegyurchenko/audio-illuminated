@@ -22,6 +22,7 @@ private:
     Ui::EditorWindow *ui;
     typedef QList<QToolBar *>EffectBars;
     EffectBars effectBars;
+    QString m_fileName;
 
     QToolBar *addEffectBar(const QString& text);
     QAction *selectEffectAction;
@@ -30,9 +31,11 @@ private:
     void onSelectEfectAction();
     void onAddAction();
     void onEditModeChanged();
+    void onProjectMidify();
   public slots:
     void onSetWindowDuration(const QString& txt);
     void onError(const QString& txt);
+    void onSetChannel(int c);
 
     void onFileNew();
     void onFileOpen();

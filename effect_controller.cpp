@@ -40,10 +40,23 @@ EffectController :: EffectController(QObject *parent)
   */
 //!!DEBUG
   loadPlugins();
+  m_unique = 1;
 }
 /*----------------------------------------------------------------------------*/
 EffectController :: ~EffectController()
 {
+}
+/*----------------------------------------------------------------------------*/
+void EffectController :: rescan()
+{
+  m_unique = 1;
+  PropList::iterator end = m_properties.end();
+  PropList::iterator it;
+  for(it = m_properties.begin(); it != end; it++)
+  {
+    if(it->id() > m_unique)
+      m_unique = it->id();
+  }
 }
 /*----------------------------------------------------------------------------*/
 void EffectController :: loadPlugins()
@@ -99,7 +112,28 @@ EffectProperties* EffectController :: newEffect(int effectId, int channel)
   m_windowStart = -1;
   m_windowSize = -1;
 
+  emit projectModify();
   return &m_properties.last();
+}
+/*----------------------------------------------------------------------------*/
+void EffectController :: deleteEffect(int id)
+{
+  if(m_effectSelected == id)
+    selectEffect(-1);
+  PropList::iterator end = m_properties.end();
+  PropList::iterator it;
+  for(it = m_properties.begin(); it != end; it++)
+  {
+    if(it->id() == id)
+    {
+      m_windowStart = -1;
+      m_windowSize = -1;
+      m_properties.erase(it);
+      emit efectSelect(-1);
+      emit projectModify();
+      break;
+    }
+  }
 }
 /*----------------------------------------------------------------------------*/
 EffectController::PropPointList& EffectController :: selectEffects(qint64 startUs, qint64 sizeUs)
@@ -173,7 +207,7 @@ EffectProperties* EffectController :: findEffectProp(int id)
   PropList::iterator end = m_properties.end();
   PropList::iterator it;
   for(it = m_properties.begin(); it != end; it++)
-    if(it->id() == m_effectSelected)
+    if(it->id() == id)
       return &*it;
   return NULL;
 }
@@ -201,6 +235,7 @@ void EffectController :: selectEffect(int id)
       {
         ie.value().propertyPanel->setVisible(true);
         ie.value().propertyPanel->propertyEdit(prop);
+        emit projectModify();
       }
 
       ControllerMap::iterator e = m_controllers.end();
