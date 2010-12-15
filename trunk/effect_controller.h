@@ -64,10 +64,13 @@ public:
 
   int unique() {return ++m_unique;}
   EffectProperties *newEffect(int effectId, int channel);
+  void deleteEffect(int id);
   PropPointList& selectEffects(qint64 startUs, qint64 sizeUs);
   ControllerMap& controllers(){return m_controllers;}
   EffectMap& effects(){return m_effects;}
   const QPixmap& effectIcon(int effectId);
+  PropList& properties(){return m_properties;}
+  void rescan();
 
 public:
   typedef enum
@@ -99,7 +102,7 @@ protected slots:
 signals:
   void modeChange();
   void efectSelect(int id);
-
+  void projectModify();
 };
 
 extern EffectController* effectController;

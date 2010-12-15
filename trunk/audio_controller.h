@@ -39,7 +39,7 @@ public:
   bool open(QFile &file);
   void close();
 
-  WavFile *vawFile() {return m_wavFile;}
+  WavFile *wavFile() {return m_wavFile;}
 
   /**Return audio duration in us*/
   qint64 duration();

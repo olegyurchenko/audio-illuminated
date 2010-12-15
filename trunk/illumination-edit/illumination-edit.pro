@@ -18,7 +18,8 @@ SOURCES += main.cpp\
     ../audio_controller.cpp \
     ../effect_controller.cpp \
     ../edit_panel.cpp \
-    ../channel_edit.cpp
+    ../channel_edit.cpp \
+    ../project_file.cpp
 
 HEADERS  += editor_window.h \
     ../waveform.h \
@@ -27,7 +28,8 @@ HEADERS  += editor_window.h \
     ../audio_controller.h \
     ../effect_controller.h \
     ../edit_panel.h \
-    ../channel_edit.h
+    ../channel_edit.h \
+    ../project_file.h
 
 FORMS    += editorwindow.ui
 

@@ -7,6 +7,7 @@
 #include <QFileDialog>
 #include <QMap>
 #include <QActionGroup>
+#include <project_file.h>
 /*----------------------------------------------------------------------------*/
 EditorWindow::EditorWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -27,7 +28,7 @@ EditorWindow::EditorWindow(QWidget *parent) :
 
   connect(selectEffectAction, SIGNAL(triggered()), this, SLOT(onSelectEfectAction()));
   connect(effectController, SIGNAL(modeChange()), this, SLOT(onEditModeChanged()));
-
+  connect(effectController, SIGNAL(projectModify()), this, SLOT(onProjectMidify()));
   ui->EffectPanel->clear();
   //addEffectBar(tr("Led effects"));
 
@@ -149,20 +150,66 @@ void EditorWindow::onFileNew()
   if(fileName.isNull())
     return;
 
+  m_fileName = QString();
   if(!audioController->open(fileName))
     return;
+
 }
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onFileOpen()
 {
+  m_fileName = QFileDialog::getOpenFileName(
+      this,
+      "Select file to read project",
+      "",
+      "Project file (*.ipr)");
+
+  if(m_fileName.isNull())
+    return;
+
+  audioController->close();
+
+  Project project;
+  //project.wavFileName = audioController->wavFile()->fileName();
+  project.props = &effectController->properties();
+  project.props->clear();
+
+  if(!loadProject(m_fileName, &project))
+    QMessageBox::critical(this, tr("Error"), tr("Error save file '%1'").arg(m_fileName));
+  else
+  {
+    if(!audioController->open(project.wavFileName))
+      return;
+    effectController->rescan();
+  }
 }
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onFileSave()
 {
+  if(m_fileName.isNull())
+    m_fileName = QFileDialog::getSaveFileName(
+        this,
+        "Select file to save project",
+        "",
+        "Project file (*.ipr)");
+
+  if(m_fileName.isNull())
+    return;
+
+  Project project;
+  project.wavFileName = audioController->wavFile()->fileName();
+  project.props = &effectController->properties();
+  if(!saveProject(m_fileName, &project))
+    QMessageBox::critical(this, tr("Error"), tr("Error save file '%1'").arg(m_fileName));
+  else
+    ui->actionSave->setEnabled(false);
+
 }
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onFileSaveAs()
 {
+  m_fileName = QString();
+  onFileSave();
 }
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onPlayerPlay()
@@ -183,5 +230,16 @@ void EditorWindow::onEditModeChanged()
 {
   if(effectController->mode() == EffectController::SelectMode && !selectEffectAction->isChecked())
     selectEffectAction->setChecked(true);
+}
+/*----------------------------------------------------------------------------*/
+void EditorWindow::onSetChannel(int c)
+{
+  ui->editPanel->setChannel(c);
+}
+/*----------------------------------------------------------------------------*/
+void EditorWindow::onProjectMidify()
+{
+  ui->actionSave->setEnabled(true);
+  ui->actionSaveAs->setEnabled(true);
 }
 /*----------------------------------------------------------------------------*/

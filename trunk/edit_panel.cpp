@@ -21,7 +21,7 @@ EditPanel :: EditPanel(QWidget *parent)
 {
   vbLayout = new QVBoxLayout(this);
   vbLayout->setMargin(0);
-
+  m_channelId = 1;
 
   m_waveForm = new WaveFormWidget(this);
   m_waveForm->setBgColor(palette().color(QPalette::Window));
@@ -37,10 +37,19 @@ EditPanel :: EditPanel(QWidget *parent)
   connect(audioController, SIGNAL(wavClose()), m_waveForm, SLOT(wavFileClosed()));
   connect(audioController, SIGNAL(playPosition(qint64)), m_waveForm, SLOT(setFilePosition(qint64)));
 
-  for(int i = 0; i < 2; i++)
-  {
-    newChannel();
-  }
+  m_channelEdit = new ChannelEdit(this);
+  vbLayout->addWidget(m_channelEdit);
+  m_channelEdit->setChannelId(m_channelId);
+  m_channelEdit->setBgColor(palette().color(QPalette::Base));
+  m_channelEdit->setFgColor(palette().color(QPalette::Foreground));
+  m_channelEdit->setMarkerColor(Qt::darkBlue);
+
+  connect(m_waveForm, SIGNAL(windowStartChanged(qint64)), m_channelEdit, SLOT(setWindowStart(qint64)));
+  connect(audioController, SIGNAL(wavOpen(WavFile*)), m_channelEdit, SLOT(wavFileOpened(WavFile*)));
+  connect(audioController, SIGNAL(wavClose()), m_channelEdit, SLOT(wavFileClosed()));
+  connect(audioController, SIGNAL(playPosition(qint64)), m_channelEdit, SLOT(setFilePosition(qint64)));
+  connect(effectController, SIGNAL(modeChange()), m_channelEdit, SLOT(onChangeEditMode()));
+  connect(effectController, SIGNAL(efectSelect(int)), m_channelEdit, SLOT(onSelectionChanged()));
 
   vbLayout->addWidget(m_waveForm);
 
@@ -60,24 +69,6 @@ EditPanel :: ~EditPanel()
 {
 }
 /*----------------------------------------------------------------------------*/
-void EditPanel :: newChannel()
-{
-  ChannelEdit *edit = new ChannelEdit(this);
-  vbLayout->addWidget(edit);
-  edits.append(edit);
-  edit->setChannelId(edits.size());
-  edit->setBgColor(palette().color(QPalette::Base));
-  edit->setFgColor(palette().color(QPalette::Foreground));
-  edit->setMarkerColor(Qt::darkBlue);
-
-  connect(m_waveForm, SIGNAL(windowStartChanged(qint64)), edit, SLOT(setWindowStart(qint64)));
-  connect(audioController, SIGNAL(wavOpen(WavFile*)), edit, SLOT(wavFileOpened(WavFile*)));
-  connect(audioController, SIGNAL(wavClose()), edit, SLOT(wavFileClosed()));
-  connect(audioController, SIGNAL(playPosition(qint64)), edit, SLOT(setFilePosition(qint64)));
-  connect(effectController, SIGNAL(modeChange()), edit, SLOT(onChangeEditMode()));
-  connect(effectController, SIGNAL(efectSelect(int)), edit, SLOT(onSelectionChanged()));
-}
-/*----------------------------------------------------------------------------*/
 void EditPanel :: onWavOpen(WavFile *)
 {
   hScroll->setMaximum((int)(audioController->length() / m_waveForm->windowLength()));
@@ -92,9 +83,7 @@ void EditPanel :: onScrollChanged(int pos)
     return;
   qint64 p = (qint64)pos * m_waveForm->windowLength();
   m_waveForm->setFilePosition(p);
-  int size = edits.size();
-  for(int i = 0; i < size; i++)
-    edits[i]->setFilePosition(p);
+  m_channelEdit->setFilePosition(p);
 }
 /*----------------------------------------------------------------------------*/
 void EditPanel :: onWavClose()
@@ -122,10 +111,13 @@ void EditPanel :: onWindowStartChanged(qint64)
 void EditPanel :: setWindowDuration(qint64 duration)
 {
   m_waveForm->setWindowDuration(duration);
-  int size = edits.size();
-  for(int i = 0; i < size; i++)
-    edits[i]->setWindowDuration(duration);
+  m_channelEdit->setWindowDuration(duration);
   if(m_waveForm->windowLength())
     hScroll->setMaximum((int)(audioController->length() / m_waveForm->windowLength()));
+}
+/*----------------------------------------------------------------------------*/
+void EditPanel :: setChannel(int c)
+{
+  m_channelEdit->setChannelId(c);
 }
 /*----------------------------------------------------------------------------*/
