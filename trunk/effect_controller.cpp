@@ -28,11 +28,17 @@ EffectController :: EffectController(QObject *parent)
   connect(audioController, SIGNAL(playPosition(qint64)), this, SLOT(onPlayPosition(qint64)));
   connect(audioController, SIGNAL(startPlay()), this, SLOT(onStartPlay()));
   connect(audioController, SIGNAL(stopPlay()), this, SLOT(onStopPlay()));
+  m_mode = EffectController::SelectMode;
+  m_effectToAdd = 0;
+  m_effectSelected = -1;
+
   //!!DEBUG
+  /*
   newEffect(1, 1)->setTimeStart(20000);
   newEffect(1, 1)->setTimeStart(150000);
   newEffect(1, 1)->setTimeStart(300000);
-  //!!DEBUG
+  */
+//!!DEBUG
   loadPlugins();
 }
 /*----------------------------------------------------------------------------*/
@@ -90,6 +96,9 @@ EffectProperties* EffectController :: newEffect(int effectId, int channel)
 {
   EffectProperties prop(effectId, unique(), channel);
   m_properties.append(prop);
+  m_windowStart = -1;
+  m_windowSize = -1;
+
   return &m_properties.last();
 }
 /*----------------------------------------------------------------------------*/
@@ -153,4 +162,47 @@ const QPixmap& EffectController :: effectIcon(int effectId)
   return pixmap;
 }
 /*----------------------------------------------------------------------------*/
+void EffectController :: setMode(EffectController :: EditMode m)
+{
+  m_mode = m;
+  emit modeChange();
+}
+/*----------------------------------------------------------------------------*/
+void EffectController :: selectEffect(int id)
+{
+  if(m_effectSelected > 0)
+  {
+    PropList::iterator end = m_properties.end();
+    PropList::iterator it;
+    for(it = m_properties.begin(); it != end; it++)
+      if(it->id() == m_effectSelected)
+        break;
+    if(it != end)
+    {
+      EffectMap::iterator ie = m_effects.find(it->effectId());
+      if(ie != m_effects.end() && ie.value().propertyPanel != NULL)
+        ie.value().propertyPanel->setVisible(false);
+    }
+  }
+  m_effectSelected = id;
+  if(m_effectSelected > 0)
+  {
+    PropList::iterator end = m_properties.end();
+    PropList::iterator it;
+    for(it = m_properties.begin(); it != end; it++)
+      if(it->id() == m_effectSelected)
+        break;
+    if(it != end)
+    {
+      EffectMap::iterator ie = m_effects.find(it->effectId());
+      if(ie != m_effects.end() && ie.value().propertyPanel != NULL)
+      {
+        ie.value().propertyPanel->setVisible(true);
+        ie.value().propertyPanel->propertyEdit(&*it);
+      }
+    }
+  }
 
+  emit efectSelect(id);
+}
+/*----------------------------------------------------------------------------*/

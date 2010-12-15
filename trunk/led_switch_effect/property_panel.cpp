@@ -59,7 +59,7 @@ void PropertyPanel :: propertyEdit(EffectProperties *prop)
     prop->propertySet("led", 1); //For led controller
     for(int i = 0; i < 32; i++)
       m_buttons[i]->setChecked(value & (1 << i));
-    prop = m_prop;
+    m_prop = prop;
   }
 }
 /*----------------------------------------------------------------------------*/

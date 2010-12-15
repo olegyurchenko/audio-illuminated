@@ -69,10 +69,35 @@ public:
   EffectMap& effects(){return m_effects;}
   const QPixmap& effectIcon(int effectId);
 
+public:
+  typedef enum
+  {
+    SelectMode,
+    AddMode
+  } EditMode;
+
+private:
+  EditMode m_mode;
+  int m_effectToAdd;
+  int m_effectSelected;
+
+public:
+  EditMode mode() {return m_mode;}
+  int effectToAdd() {return m_effectToAdd;}
+  void setMode(EditMode m);
+  void setEffectToAdd(int effectId) {m_effectToAdd = effectId;}
+  void selectEffect(int id);
+  int effectSelected(){return m_effectSelected;}
+
+
 protected slots:
   void onPlayPosition(qint64 samples);
   void onStartPlay();
   void onStopPlay();
+
+signals:
+  void modeChange();
+  void efectSelect(int id);
 
 };
 

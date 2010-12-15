@@ -96,7 +96,7 @@ EditorWindow::EditorWindow(QWidget *parent) :
       effectGroup->addAction(effectAction);
       bar->addAction(effectAction);
     }
-    vbLayout->addSpacing(100);
+    //vbLayout->addSpacing(100);
     ui->propertyPanel->setLayout(vbLayout);
   }
 }
@@ -117,15 +117,13 @@ QToolBar *EditorWindow::addEffectBar(const QString& text)
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onSelectEfectAction()
 {
-  ChannelEdit::setMode(ChannelEdit::SelectMode);
-  emit changeEditMode();
+  effectController->setMode(EffectController::SelectMode);
 }
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onAddAction()
 {
-  ChannelEdit::setMode(ChannelEdit::AddMode);
-  ChannelEdit::setEffectToAdd(sender()->property("effectId").toInt());
-  emit changeEditMode();
+  effectController->setEffectToAdd(sender()->property("effectId").toInt());
+  effectController->setMode(EffectController::AddMode);
 }
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onSetWindowDuration(const QString& txt)
