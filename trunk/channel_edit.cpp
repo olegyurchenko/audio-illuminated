@@ -33,6 +33,7 @@ ChannelEdit :: ChannelEdit(QWidget *parent)
   m_fgColor = Qt::black;
   m_gridColor = Qt::yellow;
   m_markerColor = Qt::green;
+  m_selected = -1;
 }
 /*----------------------------------------------------------------------------*/
 ChannelEdit :: ~ChannelEdit()
@@ -138,12 +139,16 @@ void ChannelEdit :: mousePressEvent(QMouseEvent *event)
           if(pol.containsPoint(event->pos(),Qt::OddEvenFill))
           {
             effectController->selectEffect(prop->id());
+            m_selected = prop->id();
             break;
           }
         }
       }
       if(i >= size)
+      {
         effectController->selectEffect(-1);
+        m_selected = -1;
+      }
     }
     else
     if(effectController->mode() == EffectController::AddMode)
@@ -152,6 +157,7 @@ void ChannelEdit :: mousePressEvent(QMouseEvent *event)
       EffectProperties *prop = effectController->newEffect(effectController->effectToAdd(), m_channelId);
       prop->setTimeStart(audioController->quants2duration(m_startPosition + (qint64)(event->pos().x() * d)));
       effectController->selectEffect(prop->id());
+      effectController->setMode(EffectController::SelectMode);
     }
   }
 
@@ -160,11 +166,20 @@ void ChannelEdit :: mousePressEvent(QMouseEvent *event)
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: mouseReleaseEvent(QMouseEvent * event)
 {
+  m_selected = -1;
   Inherited::mouseReleaseEvent(event);
 }
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: mouseMoveEvent (QMouseEvent * event)
 {
+  if(m_selected > 0)
+  {
+    qreal d =  (qreal) m_windowSize/ (qreal)width();
+    EffectProperties *prop = effectController->findEffectProp(m_selected);
+    prop->setTimeStart(audioController->quants2duration(m_startPosition + (qint64)(event->pos().x() * d)));
+    effectController->selectEffect(prop->id());
+  }
+
   Inherited::mouseMoveEvent(event);
 }
 /*----------------------------------------------------------------------------*/
@@ -181,12 +196,13 @@ void ChannelEdit :: updateData()
     m_windowSize = audioController->duration2quants(m_windowDurationUs);
     qint64 start = audioController->quants2duration(m_startPosition);
     effects = effectController->selectEffects(start, m_windowDurationUs);
-    setMouseTracking(true);
+    //setMouseTracking(true);
     update();
   }
+/*
   else
     setMouseTracking(false);
-
+*/
 }
 /*----------------------------------------------------------------------------*/
 void ChannelEdit :: wavFileOpened(WavFile *w)

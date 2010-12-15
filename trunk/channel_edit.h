@@ -37,6 +37,7 @@ private:
   QColor m_gridColor;
   QColor m_markerColor;
   int m_channelId;
+  int m_selected;
 
   bool m_audioOpened;
 

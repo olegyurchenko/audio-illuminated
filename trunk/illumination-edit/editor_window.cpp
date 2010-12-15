@@ -26,6 +26,7 @@ EditorWindow::EditorWindow(QWidget *parent) :
   effectGroup->addAction(selectEffectAction);
 
   connect(selectEffectAction, SIGNAL(triggered()), this, SLOT(onSelectEfectAction()));
+  connect(effectController, SIGNAL(modeChange()), this, SLOT(onEditModeChanged()));
 
   ui->EffectPanel->clear();
   //addEffectBar(tr("Led effects"));
@@ -166,6 +167,7 @@ void EditorWindow::onFileSaveAs()
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onPlayerPlay()
 {
+  effectController->selectEffect(-1);
   if(!ui->editPanel->waveForm()->selectionLength())
     audioController->play(ui->editPanel->waveForm()->selectionStart());
   else
@@ -175,5 +177,11 @@ void EditorWindow::onPlayerPlay()
 void EditorWindow::onPlayerStop()
 {
   audioController->stop();
+}
+/*----------------------------------------------------------------------------*/
+void EditorWindow::onEditModeChanged()
+{
+  if(effectController->mode() == EffectController::SelectMode && !selectEffectAction->isChecked())
+    selectEffectAction->setChecked(true);
 }
 /*----------------------------------------------------------------------------*/
