@@ -17,7 +17,7 @@
 #include <QPalette>
 /*----------------------------------------------------------------------------*/
 EditPanel :: EditPanel(QWidget *parent)
-  :QWidget(parent)
+  :Inherited(parent)
 {
   vbLayout = new QVBoxLayout(this);
   vbLayout->setMargin(0);
@@ -28,6 +28,8 @@ EditPanel :: EditPanel(QWidget *parent)
   m_waveForm->setFgColor(palette().color(QPalette::Foreground));
   m_waveForm->setMarkerColor(Qt::darkBlue);
   m_waveForm->setGridColor(Qt::darkGray);
+  m_waveForm->setMinimumHeight(100);
+  m_waveForm->setMaximumHeight(200);
 
 
 
@@ -43,7 +45,9 @@ EditPanel :: EditPanel(QWidget *parent)
   vbLayout->addWidget(m_waveForm);
 
   hScroll = new QScrollBar(Qt::Horizontal);
+
   vbLayout->addWidget(hScroll);
+  vbLayout->setSpacing(1);
 
   setLayout(vbLayout);
 
@@ -76,7 +80,7 @@ void EditPanel :: newChannel()
 /*----------------------------------------------------------------------------*/
 void EditPanel :: onWavOpen(WavFile *)
 {
-  hScroll->setMaximum(2 * (int)(audioController->length() / m_waveForm->windowLength()));
+  hScroll->setMaximum((int)(audioController->length() / m_waveForm->windowLength()));
   hScroll->setSingleStep(1);
   hScroll->setPageStep(10);
   connect(hScroll, SIGNAL(valueChanged(int)), this, SLOT(onScrollChanged(int)));
@@ -86,7 +90,7 @@ void EditPanel :: onScrollChanged(int pos)
 {
   if(audioController->isPlay())
     return;
-  qint64 p = (qint64)pos * m_waveForm->windowLength()/2;
+  qint64 p = (qint64)pos * m_waveForm->windowLength();
   m_waveForm->setFilePosition(p);
   int size = edits.size();
   for(int i = 0; i < size; i++)
@@ -100,7 +104,7 @@ void EditPanel :: onWavClose()
 /*----------------------------------------------------------------------------*/
 void EditPanel :: onPlayPosition(qint64 samples)
 {
-  hScroll->setSliderPosition(2 * (int)(samples / m_waveForm->windowLength()));
+  hScroll->setSliderPosition( (int)(samples / m_waveForm->windowLength()));
 }
 /*----------------------------------------------------------------------------*/
 void EditPanel :: onStartPlay()
@@ -122,6 +126,6 @@ void EditPanel :: setWindowDuration(qint64 duration)
   for(int i = 0; i < size; i++)
     edits[i]->setWindowDuration(duration);
   if(m_waveForm->windowLength())
-    hScroll->setMaximum(2 * (int)(audioController->length() / m_waveForm->windowLength()));
+    hScroll->setMaximum((int)(audioController->length() / m_waveForm->windowLength()));
 }
 /*----------------------------------------------------------------------------*/

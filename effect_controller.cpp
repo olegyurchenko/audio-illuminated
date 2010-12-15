@@ -168,18 +168,24 @@ void EffectController :: setMode(EffectController :: EditMode m)
   emit modeChange();
 }
 /*----------------------------------------------------------------------------*/
+EffectProperties* EffectController :: findEffectProp(int id)
+{
+  PropList::iterator end = m_properties.end();
+  PropList::iterator it;
+  for(it = m_properties.begin(); it != end; it++)
+    if(it->id() == m_effectSelected)
+      return &*it;
+  return NULL;
+}
+/*----------------------------------------------------------------------------*/
 void EffectController :: selectEffect(int id)
 {
   if(m_effectSelected > 0)
   {
-    PropList::iterator end = m_properties.end();
-    PropList::iterator it;
-    for(it = m_properties.begin(); it != end; it++)
-      if(it->id() == m_effectSelected)
-        break;
-    if(it != end)
+    EffectProperties* prop = findEffectProp(m_effectSelected);
+    if(prop != NULL)
     {
-      EffectMap::iterator ie = m_effects.find(it->effectId());
+      EffectMap::iterator ie = m_effects.find(prop->effectId());
       if(ie != m_effects.end() && ie.value().propertyPanel != NULL)
         ie.value().propertyPanel->setVisible(false);
     }
@@ -187,19 +193,24 @@ void EffectController :: selectEffect(int id)
   m_effectSelected = id;
   if(m_effectSelected > 0)
   {
-    PropList::iterator end = m_properties.end();
-    PropList::iterator it;
-    for(it = m_properties.begin(); it != end; it++)
-      if(it->id() == m_effectSelected)
-        break;
-    if(it != end)
+    EffectProperties* prop = findEffectProp(m_effectSelected);
+    if(prop != NULL)
     {
-      EffectMap::iterator ie = m_effects.find(it->effectId());
+      EffectMap::iterator ie = m_effects.find(prop->effectId());
       if(ie != m_effects.end() && ie.value().propertyPanel != NULL)
       {
         ie.value().propertyPanel->setVisible(true);
-        ie.value().propertyPanel->propertyEdit(&*it);
+        ie.value().propertyPanel->propertyEdit(prop);
       }
+
+      ControllerMap::iterator e = m_controllers.end();
+      for(ControllerMap::iterator ci = m_controllers.begin(); ci != e; ci++)
+      {
+        if(ci.value().demoPanel != NULL)
+          ci.value().demoPanel->effectStart(*prop);
+        ci.value().iface->effectStart(*prop);
+      }
+
     }
   }
 

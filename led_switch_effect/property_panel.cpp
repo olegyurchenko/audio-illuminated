@@ -42,6 +42,7 @@ PropertyPanel :: PropertyPanel(QWidget *parent)
     connect(btn, SIGNAL(toggled(bool)), this, SLOT(onBitToggled(bool)));
     hbLayout->addWidget(btn);
   }
+
 }
 /*----------------------------------------------------------------------------*/
 PropertyPanel :: ~PropertyPanel()

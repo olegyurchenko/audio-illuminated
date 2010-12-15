@@ -23,7 +23,7 @@ SimpleSwitchLedEffect :: SimpleSwitchLedEffect(QObject *parent)
   m_effectId = 1;
   m_effectName = tr("Simple switch led");
   m_effectCathegory = tr("Led effects");
-  m_effectDescription = tr("Simple switch led effect for witch on/off led on led controller");
+  m_effectDescription = tr("Simple switch led (on/off) on led controller");
   m_effectIcon = QPixmap(":/resources/led_switch.png");
   qDebug() << QString("%1 created").arg(m_effectName);
 }

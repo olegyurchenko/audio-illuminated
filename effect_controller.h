@@ -88,6 +88,7 @@ public:
   void setEffectToAdd(int effectId) {m_effectToAdd = effectId;}
   void selectEffect(int id);
   int effectSelected(){return m_effectSelected;}
+  EffectProperties *findEffectProp(int id);
 
 
 protected slots:

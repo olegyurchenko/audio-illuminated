@@ -29,6 +29,7 @@ private:
   protected slots:
     void onSelectEfectAction();
     void onAddAction();
+    void onEditModeChanged();
   public slots:
     void onSetWindowDuration(const QString& txt);
     void onError(const QString& txt);

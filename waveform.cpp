@@ -219,9 +219,9 @@ void WaveFormWidget :: setFilePosition(qint64 pos)
 
   bool modified = m_position != pos;
   m_position = pos;
-  if(modified && (m_position > m_startPosition + m_windowSize || m_position < m_startPosition) || m_pixmap.size() != size())
+  if(modified && (m_position >= m_startPosition + m_windowSize || m_position < m_startPosition) || m_pixmap.size() != size())
   {
-    if(m_position > m_startPosition + m_windowSize || m_position < m_startPosition)
+    if(m_position >= m_startPosition + m_windowSize || m_position < m_startPosition)
     {
       m_startPosition = m_windowSize * (m_position / m_windowSize);
       emit windowStartChanged(m_startPosition);

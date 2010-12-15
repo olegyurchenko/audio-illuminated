@@ -20,10 +20,12 @@
 #include <QVBoxLayout>
 #include <QScrollBar>
 #include <QVector>
+#include <QScrollArea>
 
 class EditPanel : public QWidget
 {
   Q_OBJECT
+  typedef QWidget Inherited;
 private:
   QVBoxLayout* vbLayout;
   WaveFormWidget *m_waveForm;
