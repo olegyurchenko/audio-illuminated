@@ -36,7 +36,7 @@ WaveFormWidget :: WaveFormWidget(QWidget *parent)
   m_selectionStart = 0;
   m_selectionLength = 0;
 
-  m_tileDuration = 10000; //10ms
+  m_tileDuration = 20000; //20ms
 
   m_wav = NULL;
   m_in = NULL;
@@ -76,11 +76,13 @@ void WaveFormWidget :: init(QSize size)
   m_windowSize = m_wav->length(m_windowDurationUs);
   m_tileSize = m_wav->length(m_tileDuration);
   m_tileCount = m_windowSize / m_tileSize;
+  /*
   if(m_tileCount > 100)
   {
     m_tileSize = m_windowSize / 100;
     m_tileCount = 100;
   }
+  */
   clear();
   QSize tileSize(1 + size.width()/m_tileCount, size.height());
   //QSize tileSize(m_tileSize, m_wav->format().channels() * 200);

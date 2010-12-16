@@ -41,7 +41,7 @@ public:
   bool modified() const {return m_modified;}
   int effectId() const {return m_effectId;}
   int id() const {return m_id;}
-  int channel(){return m_channel;}
+  int channel() const {return m_channel;}
   qint64 timeStart() const {return m_timeStart;}
   const QVariant property (const QString& name) const {return m_properties[name];}
   void propertySet(const QString& name, const QVariant& value) {m_properties[name] = value; m_modified = true;}
@@ -50,7 +50,8 @@ public:
   void setEffectId(int i) {m_effectId = i;}
   void setId(int i) {m_id = i;}
   void setTimeStart(qint64 s) {m_timeStart = s;}
-  QVariantMap& properties() {return m_properties;}
+  const QVariantMap& properties() const {return m_properties;}
+  QVariantMap& props() {return m_properties;}
   void setChannel(int c){m_channel = c;}
 };
 /*----------------------------------------------------------------------------*/
