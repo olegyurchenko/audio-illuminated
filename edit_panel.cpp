@@ -69,11 +69,12 @@ EditPanel :: ~EditPanel()
 {
 }
 /*----------------------------------------------------------------------------*/
+#define STEP 3
 void EditPanel :: onWavOpen(WavFile *)
 {
-  hScroll->setMaximum((int)(audioController->length() / m_waveForm->windowLength()));
+  hScroll->setMaximum((int)(STEP * audioController->length() / m_waveForm->windowLength()));
   hScroll->setSingleStep(1);
-  hScroll->setPageStep(10);
+  hScroll->setPageStep(STEP);
   connect(hScroll, SIGNAL(valueChanged(int)), this, SLOT(onScrollChanged(int)));
 }
 /*----------------------------------------------------------------------------*/
@@ -81,7 +82,7 @@ void EditPanel :: onScrollChanged(int pos)
 {
   if(audioController->isPlay())
     return;
-  qint64 p = (qint64)pos * m_waveForm->windowLength();
+  qint64 p = (qint64)(pos * m_waveForm->windowLength())/STEP;
   m_waveForm->setFilePosition(p);
   m_channelEdit->setFilePosition(p);
 }
@@ -93,7 +94,7 @@ void EditPanel :: onWavClose()
 /*----------------------------------------------------------------------------*/
 void EditPanel :: onPlayPosition(qint64 samples)
 {
-  hScroll->setSliderPosition( (int)(samples / m_waveForm->windowLength()));
+  hScroll->setSliderPosition( (int)(STEP * samples / m_waveForm->windowLength() ));
 }
 /*----------------------------------------------------------------------------*/
 void EditPanel :: onStartPlay()
@@ -113,7 +114,7 @@ void EditPanel :: setWindowDuration(qint64 duration)
   m_waveForm->setWindowDuration(duration);
   m_channelEdit->setWindowDuration(duration);
   if(m_waveForm->windowLength())
-    hScroll->setMaximum((int)(audioController->length() / m_waveForm->windowLength()));
+    hScroll->setMaximum((int)(STEP * audioController->length() / m_waveForm->windowLength()));
 }
 /*----------------------------------------------------------------------------*/
 void EditPanel :: setChannel(int c)

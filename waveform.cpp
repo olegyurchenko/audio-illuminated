@@ -22,8 +22,10 @@
 #include <QRect>
 #include <QImage>
 
+#define ABS(a) ((a) < 0 ? -(a) : (a))
+
 WaveFormWidget :: WaveFormWidget(QWidget *parent)
-  :QWidget(parent), m_pixmap(QSize(0,0))
+  :QWidget(parent)
 {
   m_startPosition = 0;
   m_windowDurationUs = 1000000; //1s
@@ -34,6 +36,7 @@ WaveFormWidget :: WaveFormWidget(QWidget *parent)
   m_selectionStart = 0;
   m_selectionLength = 0;
 
+  m_tileDuration = 10000; //10ms
 
   m_wav = NULL;
   m_in = NULL;
@@ -42,10 +45,137 @@ WaveFormWidget :: WaveFormWidget(QWidget *parent)
   m_fgColor = Qt::white;
   m_gridColor = Qt::yellow;
   m_markerColor = Qt::green;
+  m_painted = false;
 }
 /*----------------------------------------------------------------------------*/
 WaveFormWidget :: ~WaveFormWidget()
 {
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: clear()
+{
+  int size = m_tiles.size();
+  for(int i = 0; i < size; i++)
+    if(m_tiles[i].pixmap != NULL)
+      delete m_tiles[i].pixmap;
+  m_tiles.clear();
+  m_painted = false;
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: erase(int i)
+{
+  TileList::iterator it = m_tiles.begin() + i;
+  if(it->pixmap != NULL)
+    delete it->pixmap;
+  m_tiles.erase(it);
+  m_painted = false;
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: init(QSize size)
+{
+  m_windowSize = m_wav->length(m_windowDurationUs);
+  m_tileSize = m_wav->length(m_tileDuration);
+  m_tileCount = m_windowSize / m_tileSize;
+  if(m_tileCount > 100)
+  {
+    m_tileSize = m_windowSize / 100;
+    m_tileCount = 100;
+  }
+  clear();
+  QSize tileSize(1 + size.width()/m_tileCount, size.height());
+  //QSize tileSize(m_tileSize, m_wav->format().channels() * 200);
+  for(qint64 i = 0; i < m_tileCount; i++)
+  {
+    Tile t;
+    t.startPosition = i * m_tileSize + m_startPosition;
+    t.pixmap = new QPixmap(tileSize);
+    t.painted = false;
+    m_tiles.append(t);
+  }
+  m_painted = false;
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: drawTiles()
+{
+  int size = m_tiles.size();
+  for(int i = 0; i < size; i++)
+    if(!m_tiles[i].painted)
+      drawTile(i);
+  m_painted = true;
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: redrawTiles()
+{
+  int size = m_tiles.size();
+  for(int i = 0; i < size; i++)
+     drawTile(i);
+  m_painted = true;
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: drawTile(int index)
+{
+  if(index < 0 || index >= m_tiles.size())
+    return;
+
+  QPixmap *pixmap = m_tiles[index].pixmap;
+  if(pixmap == NULL)
+    return;
+
+  QPainter painter(pixmap);
+
+  int channels = m_wav->format().channels();
+
+  QPen pen(m_fgColor);
+  painter.setPen(pen);
+
+  painter.fillRect(pixmap->rect(), m_bgColor);
+
+  qreal dX = (qreal)pixmap->width() / (qreal) m_tileSize;
+  qreal dY = (qreal)pixmap->height() / (2 * (qreal) channels);
+
+  QVector<QLine> lines(channels);
+  QVector<int> baseY(channels);
+
+  QPen pen1(m_gridColor);
+  painter.setPen(pen1);
+  for(int i = 0; i < channels; i++)
+  {
+    baseY[i] = (int)(dY + dY * i * 2);
+    lines[i].setP1(QPoint(0, baseY[i]));
+    lines[i].setP2(QPoint(pixmap->width(), baseY[i]));
+    painter.drawLine(lines[i]);
+  }
+
+
+  //Draw signal
+  painter.setPen(pen);
+  if(m_tiles[index].startPosition) //read last point
+  {
+    m_wav->seek(m_tiles[index].startPosition - 1, *m_in);
+    QVector<qreal> data = m_wav->readNext(*m_in);
+    int c = data.size();
+    for(int i = 0; i < channels && i < c; i++)
+    {
+      qreal y = data[i] * dY + baseY[i];
+      lines[i].setP1(QPoint(0, (int)y));
+    }
+  }
+  else
+    m_wav->seek(m_tiles[index].startPosition, *m_in);
+  for(qint64 p = 0; p < m_tileSize; p++)
+  {
+    qreal x = p * dX;
+    QVector<qreal> data = m_wav->readNext(*m_in);
+    int c = data.size();
+    for(int i = 0; i < channels && i < c; i++)
+    {
+      qreal y = data[i] * dY + baseY[i];
+      lines[i].setP2(QPoint((int)x, (int)y));
+      painter.drawLine(lines[i]);
+      lines[i].setP1(QPoint((int)x, (int)y));
+    }
+  }
+  m_tiles[index].painted = true;
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: setWavFile(WavFile *w)
@@ -56,12 +186,11 @@ void WaveFormWidget :: setWavFile(WavFile *w)
   m_in = NULL;
   if(m_wav == NULL)
   {
-    m_pixmap = QPixmap(QSize(0,0));
+    clear();
     m_windowSize = 0;
     return;
   }
 
-  m_windowSize = m_wav->length(m_windowDurationUs);
   m_startPosition = 0;
   m_in = new QFile(m_wav->fileName());
   if(!m_in->open(QIODevice::ReadOnly))
@@ -71,6 +200,7 @@ void WaveFormWidget :: setWavFile(WavFile *w)
     m_wav = NULL;
     return;
   }
+  init(size());
   setFilePosition(0);
 }
 /*----------------------------------------------------------------------------*/
@@ -89,46 +219,49 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
   QPainter painter(this);
 
   painter.fillRect(rect(), m_bgColor);
-  painter.drawPixmap(0, 0, m_pixmap);
-  if(m_windowSize)
+  if(!m_windowSize || m_wav == NULL || m_tiles.empty())
+    return;
+
+  qreal dX = (qreal)width() / (qreal) m_windowSize;
+
+//  painter.drawPixmap(0, 0, m_pixmap);
+  int size = m_tiles.size();
+  for(int i = 0; i < size; i++)
   {
-    qreal dX = (qreal)width() / (qreal) m_windowSize;
-    QPen pen(m_markerColor);
-    painter.setPen(pen);
-    //Draw position line
-    painter.drawLine(QPointF(dX * (m_position - m_startPosition), 0), QPointF(dX * (m_position - m_startPosition), height()));
-    //Draw user selection
-    if(
-        (m_selectionStart >= m_startPosition && m_selectionStart < m_startPosition + m_windowSize)
-        || (m_selectionStart + m_selectionLength >= m_startPosition && m_selectionStart + m_selectionLength < m_startPosition + m_windowSize)
-        || (m_selectionStart < m_startPosition && m_selectionStart + m_selectionLength > m_startPosition + m_windowSize)
+    if(m_tiles[i].painted && m_tiles[i].pixmap != NULL)
+      painter.drawPixmap((int)(i * m_tileSize * dX), 0, *m_tiles[i].pixmap);
+  }
+
+  QPen pen(m_markerColor);
+  painter.setPen(pen);
+  //Draw position line
+  painter.drawLine(QPointF(dX * (m_position - m_startPosition), 0), QPointF(dX * (m_position - m_startPosition), height()));
+  //Draw user selection
+  if(
+      (m_selectionStart >= m_startPosition && m_selectionStart < m_startPosition + m_windowSize)
+      || (m_selectionStart + m_selectionLength >= m_startPosition && m_selectionStart + m_selectionLength < m_startPosition + m_windowSize)
+      || (m_selectionStart < m_startPosition && m_selectionStart + m_selectionLength > m_startPosition + m_windowSize)
       )
+  {
+    QRect r = rect();
+    if(m_selectionStart > m_startPosition)
+      r.setLeft((int)(dX * (m_selectionStart - m_startPosition)));
+    if(m_selectionStart + m_selectionLength < m_startPosition + m_windowSize)
+      r.setRight(1+(int)(dX * (m_selectionStart + m_selectionLength - m_startPosition)));
+
+    QImage img(r.size(), QImage::Format_RGB32);
+    QPainter painter1(&img);
+
+    for(int i = 0; i < size; i++)
     {
-      QRect r = rect();
-      if(m_selectionStart > m_startPosition)
-        r.setLeft((int)(dX * (m_selectionStart - m_startPosition)));
-      if(m_selectionStart + m_selectionLength < m_startPosition + m_windowSize)
-        r.setRight(1+(int)(dX * (m_selectionStart + m_selectionLength - m_startPosition)));
-
-      QImage img(r.size(), QImage::Format_RGB32);
-      QPainter painter1(&img);
-      painter1.drawPixmap(QPoint(0, 0), m_pixmap, r);
-      img.invertPixels();
-      painter.drawImage(r.left(), r.top(), img);
-
-      /*
-      QPixmap sel = m_pixmap.copy(r);
-      QPainter painter1(&sel);
-
-      painter1.setCompositionMode(QPainter::CompositionMode_Xor);
-      painter1.fillRect(sel.rect(), Qt::black);
-      painter.drawPixmap(r.left(), r.top(), sel);
-      */
-      /*
-      QBrush brush(Qt::white, Qt::Dense5Pattern);
-      painter.fillRect(r, brush);
-      */
+      int x = (int)(i * m_tileSize * dX);
+      if(x < r.right() && x + m_tiles[i].pixmap->width() >= r.left())
+        painter1.drawPixmap(QPoint(x - r.left(), 0), *m_tiles[i].pixmap);
     }
+
+    img.invertPixels();
+    painter.drawImage(r.left(), r.top(), img);
+    painter.drawRect(r);
 
   }
   //QWidget::paintEvent(event);
@@ -209,7 +342,10 @@ void WaveFormWidget :: mouseMoveEvent (QMouseEvent * event)
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: resizeEvent(QResizeEvent *event)
 {
-  drawPixmap(event->size());
+  if(!m_windowSize || m_wav == NULL)
+    return;
+  init(event->size());
+  drawTiles();
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: setFilePosition(qint64 pos)
@@ -219,86 +355,64 @@ void WaveFormWidget :: setFilePosition(qint64 pos)
 
   bool modified = m_position != pos;
   m_position = pos;
-  if(modified && (m_position >= m_startPosition + m_windowSize || m_position < m_startPosition) || m_pixmap.size() != size())
-  {
-    if(m_position >= m_startPosition + m_windowSize || m_position < m_startPosition)
-    {
-      m_startPosition = m_windowSize * (m_position / m_windowSize);
-      emit windowStartChanged(m_startPosition);
-    }
+  qint64 wavSize = m_wav->length();
+  qint64 newStart = m_startPosition;
 
-    modified = true;
-    drawPixmap(size());
-  }
-  if(modified)
-    update();
-}
-/*----------------------------------------------------------------------------*/
-void WaveFormWidget :: drawPixmap(const QSize& size)
-{
-  if(m_wav == NULL || m_in == NULL)
+  if(m_position < m_windowSize/2)
+    newStart = 0;
+  else
+  if(m_position > wavSize - m_windowSize/2)
+    newStart = m_tileSize * ((wavSize - m_windowSize)/m_tileSize); //m_tileSize adjusted
+  else
+    newStart = m_tileSize * ((m_position - m_windowSize/2)/m_tileSize); //m_tileSize adjusted
+
+  if(newStart == m_startPosition)
   {
-    m_pixmap = QPixmap(QSize(0,0));
+    if(!m_painted)
+    {
+      modified = true;
+      drawTiles();
+    }
+    if(modified)
+      update();
     return;
   }
 
-  qint64 timeRuler = m_wav->length(m_timeRuler);
 
-  if(m_pixmap.size() != size)
-    m_pixmap = QPixmap(size);
-
-  QPainter painter(&m_pixmap);
-
-  int channels = m_wav->format().channels();
-
-  QPen pen(m_fgColor);
-  painter.setPen(pen);
-
-  painter.fillRect(m_pixmap.rect(), m_bgColor);
-
-  qreal dX = (qreal)m_pixmap.width() / (qreal) m_windowSize;
-  qreal dY = (qreal)m_pixmap.height() / (2 * (qreal) channels);
-
-  QVector<QLine> lines(channels);
-  QVector<int> baseY(channels);
-  //painter.drawLine(QPoint(0,100), QPoint(m_pixmap.width(), 100));
-  QPen pen1(m_gridColor);
-  painter.setPen(pen1);
-  for(int i = 0; i < channels; i++)
+  if(!m_painted || ABS(m_startPosition - newStart) >= m_windowSize)
   {
-    baseY[i] = (int)(dY + dY * i * 2);
-    lines[i].setP1(QPoint(0, baseY[i]));
-    lines[i].setP2(QPoint(m_pixmap.width(), baseY[i]));
-    painter.drawLine(lines[i]);
-  }
-
-  //Draw ruler
-#if 1
-  painter.setPen(pen1);
-  for(qint64 p = 0; timeRuler && p < m_windowSize; p++)
-    if(!((m_startPosition + p) % timeRuler))
+    int size = m_tiles.size();
+    m_startPosition = newStart;
+    for(int i = 0; i < size; i++)
     {
-      qreal x = p * dX;
-      painter.drawLine((int)x, 0, (int)x, m_pixmap.height());
-    }
-#endif
-
-  //Draw signal
-  painter.setPen(pen);
-  m_wav->seek(m_startPosition, *m_in);
-  for(qint64 p = 0; p < m_windowSize; p++)
-  {
-    qreal x = p * dX;
-    QVector<qreal> data = m_wav->readNext(*m_in);
-    int c = data.size();
-    for(int i = 0; i < channels && i < c; i++)
-    {
-      qreal y = data[i] * dY + baseY[i];
-      lines[i].setP2(QPoint((int)x, (int)y));
-      painter.drawLine(lines[i]);
-      lines[i].setP1(QPoint((int)x, (int)y));
+      m_tiles[i].startPosition = m_tileSize * i + m_startPosition;
+      m_tiles[i].painted = false;
     }
   }
+  else
+  {
+    while(newStart < m_startPosition) //scrool left
+    {
+      m_tiles.last().painted = false;
+      m_tiles.push_front(m_tiles.last());
+      m_tiles.pop_back();
+      m_startPosition -= m_tileSize;
+    }
+
+    while(newStart > m_startPosition) //scrool right
+    {
+      m_tiles.front().painted = false;
+      m_tiles.push_back(m_tiles.front());
+      m_tiles.pop_front();
+      m_startPosition += m_tileSize;
+    }
+    int size = m_tiles.size();
+    for(int i = 0; i < size; i++)
+      m_tiles[i].startPosition = m_tileSize * i + m_startPosition;
+  }
+  drawTiles();
+  update();
+  emit windowStartChanged(m_startPosition);
 }
 /*----------------------------------------------------------------------------*/
 qint64 WaveFormWidget :: pixel2audio(int x) const
@@ -315,7 +429,7 @@ void WaveFormWidget :: setBgColor(QColor c)
   if(m_bgColor == c)
     return;
   m_bgColor = c;
-  drawPixmap(size());
+  redrawTiles();
   update();
 }
 /*----------------------------------------------------------------------------*/
@@ -324,7 +438,7 @@ void WaveFormWidget :: setFgColor(QColor c)
   if(m_fgColor == c)
     return;
   m_fgColor = c;
-  drawPixmap(size());
+  redrawTiles();
   update();
 }
 /*----------------------------------------------------------------------------*/
@@ -333,7 +447,7 @@ void WaveFormWidget :: setGridColor(QColor c)
   if(m_gridColor == c)
     return;
   m_gridColor = c;
-  drawPixmap(size());
+  redrawTiles();
   update();
 }
 /*----------------------------------------------------------------------------*/
@@ -353,7 +467,8 @@ void WaveFormWidget :: setWindowDuration(qint64 duration)
   if(m_wav != NULL)
   {
     m_windowSize = m_wav->length(m_windowDurationUs);
-    drawPixmap(size());
+    init(size());
+    drawTiles();
     update();
   }
 }
