@@ -15,10 +15,13 @@
 #define PROJECT_FILE_H_1292427285
 /*----------------------------------------------------------------------------*/
 #include <effect_controller.h>
+#include <effect_plugin_if.h>
+#include <QList>
+
 typedef struct
 {
   QString wavFileName;
-  EffectController::PropList* props;
+  QList<EffectProperties>* props;
 } Project;
 
 bool saveProject(const QString& fileName, Project *project);

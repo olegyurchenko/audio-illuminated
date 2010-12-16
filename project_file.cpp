@@ -13,131 +13,114 @@
 /*----------------------------------------------------------------------------*/
 #include "project_file.h"
 #include <QtDebug>
-#include <QTextStream>
+#include <QDataStream>
 #include <QFile>
 #include <QVariantMap>
 #include <QRegExp>
 #include <QtDebug>
+#include <QTemporaryFile>
+#include <QApplication>
+#include <QStringList>
+#include <QDir>
 /*----------------------------------------------------------------------------*/
+QDataStream& operator << (QDataStream& out, const EffectProperties& p)
+{
+  out << p.effectId() << p.id() << p.channel() << p.timeStart() << p.properties();
+  return out;
+}
+/*----------------------------------------------------------------------------*/
+QDataStream& operator >> (QDataStream& in, EffectProperties& p)
+{
+  p.props().clear();
+  int effectId, id, channel;
+  qint64 timeStart;
+  in >> effectId >> id >> channel >> timeStart >>p.props();
+  p.setEffectId(effectId);
+  p.setId(id);
+  p.setChannel(channel);
+  p.setTimeStart(timeStart);
+  p.setModified(false);
+  return in;
+}
+/*----------------------------------------------------------------------------*/
+
 const QString projectHeader = QString("Illumination project v(1.0)");
+
 bool saveProject(const QString& fileName, Project *project)
 {
   QFile data(fileName);
   if (data.open(QFile::WriteOnly | QFile::Truncate))
   {
-    QTextStream out(&data);
-    out << QString("[%1]\n").arg(projectHeader);
-    out << QString("%1=%2\n").arg("wavFile", project->wavFileName);
+    QDataStream out(&data);
+    out << projectHeader;
+    out << project->wavFileName;
     int size = project->props->size();
+    out << size;
     for(int i = 0; i < size; i++)
     {
-      EffectProperties* prop = &*(project->props->begin() + i);
-      out << QString("[%1]\n").arg("effect");
-      out << "id" << "=" << prop->id() << endl;
-      out << "effectId" << "=" << prop->effectId() << endl;
-      out << "channel" << "=" << prop->channel() << endl;
-      out << "timeStart" << "=" << prop->timeStart() << endl;
-
-      out << QString("[%1]\n").arg("effectProperty");
-      QVariantMap::iterator end = prop->properties().end();
-      for(QVariantMap::iterator it = prop->properties().begin(); it != end; it++)
-        out << it.key() << "=" << it.value().toString() << endl;
-
+      out << *(project->props->begin() + i);
     }
-    out << QString("[end]\n");
+
+    QFile wav(project->wavFileName);
+    if(wav.open(QFile::ReadOnly))
+    {
+      while(!wav.atEnd())
+      {
+        QByteArray array = wav.read(100 * 1024);
+        out.writeRawData(array.constData(), array.size());
+      }
+    }
     return true;
   }
   return false;
 }
 /*----------------------------------------------------------------------------*/
-QString getSection(const QString& txt)
-{
-  return txt.mid(1,txt.indexOf("]") - 1);
-}
-/*----------------------------------------------------------------------------*/
-QString getEquation(const QString& txt, QString *value)
-{
-  QString var;
-  var = txt.left(txt.indexOf('=')).trimmed();
-  *value = txt.mid(txt.indexOf('=')+1).trimmed();
-  //qDebug() << "equation" << var << *value;
-  return var;
-}
-/*----------------------------------------------------------------------------*/
 bool loadProject(const QString& fileName, Project *project)
 {
-  enum
-  {
-    outside,
-    inProject,
-    inEffect,
-    inProp
-  } state = outside;
-
   QFile data(fileName);
   if (data.open(QFile::ReadOnly))
   {
-    QTextStream in(&data);
-    QRegExp sect("^\\[.+\\]");
-    QRegExp equ("[A-Za-z]+=.*");
-    QString line;
-    QString txt;
-
-    EffectProperties *prop = NULL;
-    do
+    QDataStream in(&data);
+    QString str;
+    in >> str;
+    if(str != projectHeader)
     {
-      line = in.readLine();
-      //qDebug() << "line" << line << line.indexOf(sect) << line.indexOf(equ);
-      if(line.indexOf(sect) >= 0)
-      {
-        txt = getSection(line);
-        //qDebug() << "section" << txt;
-        if(state == outside && txt == projectHeader)
-        {
-          state = inProject;
-          //qDebug() << "inProject";
-        }
-        else
-        if((state == inProject || state == inProp) && txt == "effect")
-        {
-          state = inEffect;
-          project->props->push_back(EffectProperties(-1, -1, -1));
-          prop = &project->props->last();
-        }
-        else
-        if(state == inEffect && txt == "effectProperty")
-          state = inProp;
-        else
-        if(txt == "end")
-          break;
-      }
-      else
-      if(line.indexOf(equ) >= 0)
-      {
-        QString var = getEquation(line, &txt);
-        if(state == inProject && var == "wavFile")
-          project->wavFileName = txt;
-        else
-        if(state == inEffect && prop != NULL)
-        {
-          if(var == "id")
-            prop->setId(txt.toInt());
-          else
-          if(var == "effectId")
-            prop->setEffectId(txt.toInt());
-          else
-          if(var == "channel")
-            prop->setChannel(txt.toInt());
-          else
-          if(var == "timeStart")
-            prop->setTimeStart(txt.toInt());
-        }
-        else
-        if(state == inProp && prop != NULL)
-          prop->propertySet(var, txt);
-      }
+      qDebug() << "Invalid stream file" << fileName;
+      return false;
+    }
+    in >> project->wavFileName;
+    project->props->clear();
+    int size;
+    in >> size;
+    for(int i = 0; i < size; i++)
+    {
+      EffectProperties p(-1, -1, -1);
+      in >> p;
+      project->props->append(p);
+    }
 
-    } while (!line.isNull());
+    if(!QFile::exists(project->wavFileName))
+    {
+      QString tempMask = QDir::tempPath();
+      if(!tempMask.endsWith('/') && !tempMask.endsWith('\\'))
+        tempMask += "/";
+      tempMask += "illumination-edit-XXXXX";
+      QTemporaryFile *file = new QTemporaryFile(tempMask, qApp);
+      file->setAutoRemove(true);
+      if(file->open())
+      {
+        char buffer[100 * 1024];
+        while(!in.atEnd())
+        {
+          int r = in.readRawData(buffer, sizeof(buffer));
+          if(r <= 0)
+            break;
+          file->write(buffer, r);
+        }
+        project->wavFileName = file->fileName();
+        //qDebug() << "Using file" << project->wavFileName;
+      }
+    }
     return true;
   }
   return false;

@@ -106,6 +106,7 @@ EditorWindow::EditorWindow(QWidget *parent) :
 EditorWindow::~EditorWindow()
 {
   delete ui;
+  audioController->close();
 }
 /*----------------------------------------------------------------------------*/
 QToolBar *EditorWindow::addEffectBar(const QString& text)
@@ -153,7 +154,7 @@ void EditorWindow::onFileNew()
   m_fileName = QString();
   if(!audioController->open(fileName))
     return;
-
+  effectController->properties().clear();
 }
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onFileOpen()
