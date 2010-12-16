@@ -20,6 +20,8 @@
 #include <QPixmap>
 #include <QVector>
 #include <QColor>
+#include <QList>
+#include <QPoint>
 
 class WavFile;
 class QFile;
@@ -43,9 +45,25 @@ private:
   QColor m_gridColor;
   QColor m_markerColor;
 
+
   WavFile *m_wav;
   QFile *m_in;
-  QPixmap m_pixmap;
+
+  qint64 m_tileDuration;
+  qint64 m_tileSize;
+  qint64 m_tileCount;
+  bool m_painted;
+
+  typedef struct
+  {
+    qint64 startPosition;
+    bool painted;
+    QPixmap *pixmap;
+    QPoint last;
+  } Tile;
+
+  typedef QList<Tile> TileList;
+  TileList m_tiles;
 
 public:
   WaveFormWidget(QWidget *parent);
@@ -69,7 +87,13 @@ protected:
   virtual void mouseReleaseEvent(QMouseEvent * event);
   virtual void mouseMoveEvent (QMouseEvent * event);
 
-  void drawPixmap(const QSize& size);
+  void init(QSize size);
+  void clear();
+  void erase(int i);
+  void drawTiles();
+  void redrawTiles();
+  void drawTile(int i);
+
   qint64 pixel2audio(int x) const;
   void setStartSelection(int x);
   void setEndSelection(int x);
