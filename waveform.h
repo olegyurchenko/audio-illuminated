@@ -22,15 +22,20 @@
 #include <QColor>
 #include <QList>
 #include <QPoint>
+#include <QThread>
+#include <QQueue>
+#include <QMutex>
+#include <QSemaphore>
 
 class WavFile;
 class QFile;
+class WaveFormThread;
 /*----------------------------------------------------------------------------*/
 class WaveFormWidget : public QWidget
 {
   Q_OBJECT
 
-private:
+protected:
   qint64 m_startPosition;
   qint64 m_windowDurationUs;
   qint64 m_timeRuler;
@@ -56,15 +61,15 @@ private:
 
   typedef struct
   {
+    int index;
     qint64 startPosition;
     bool painted;
     QPixmap *pixmap;
-    QPoint last;
   } Tile;
 
   typedef QList<Tile> TileList;
   TileList m_tiles;
-
+  WaveFormThread *m_thread;
 public:
   WaveFormWidget(QWidget *parent);
   virtual ~WaveFormWidget();
@@ -92,7 +97,7 @@ protected:
   void erase(int i);
   void drawTiles();
   void redrawTiles();
-  void drawTile(int i);
+  void drawTile(Tile &tile);
 
   qint64 pixel2audio(int x) const;
   void setStartSelection(int x);
@@ -107,11 +112,33 @@ public slots:
   void setGridColor(QColor c);
   void setMarkerColor(QColor c);
   void setWindowDuration(qint64 duration);
+protected slots:
+  void onTilePainted(int index, QPixmap *pixmap);
 signals:
   void windowStartChanged(qint64);
 
+  friend class WaveFormThread;
 };
-
+/*----------------------------------------------------------------------------*/
+class WaveFormThread : public QThread
+{
+  Q_OBJECT
+protected:
+  typedef QQueue<WaveFormWidget::Tile> TileQueue;
+  TileQueue m_queue;
+  bool m_terminated;
+  QSemaphore m_sem;
+  QMutex m_mut;
+  WaveFormWidget *m_waveform;
+public:
+  WaveFormThread(WaveFormWidget *parent);
+  virtual ~WaveFormThread();
+  virtual void run();
+  void addTile(const WaveFormWidget::Tile& tile);
+  void clear();
+signals:
+  void tilePainted(int index, QPixmap *pixmap);
+};
 /*----------------------------------------------------------------------------*/
 #endif /*WAVEFORM_H_1291720077*/
 
