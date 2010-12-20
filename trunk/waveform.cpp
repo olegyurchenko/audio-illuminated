@@ -24,6 +24,67 @@
 
 #define ABS(a) ((a) < 0 ? -(a) : (a))
 
+/*----------------------------------------------------------------------------*/
+WaveFormThread :: WaveFormThread(WaveFormWidget *parent)
+  : QThread(parent)
+{
+  m_waveform = parent;
+  m_terminated = false;
+}
+/*----------------------------------------------------------------------------*/
+WaveFormThread :: ~WaveFormThread()
+{
+  m_terminated = true;
+  clear();
+  m_sem.release();
+  wait(1000);
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormThread :: run()
+{
+  while(!m_terminated)
+  {
+    if(!m_sem.tryAcquire(1, 100))
+      continue;
+
+    bool empty = false;
+    WaveFormWidget::Tile tile;
+
+    m_mut.lock();
+    empty = m_queue.isEmpty();
+    if(!empty)
+    {
+      tile = m_queue.first();
+      m_queue.pop_front();
+    }
+    m_mut.unlock();
+    if(empty)
+      continue;
+    m_waveform->drawTile(tile);
+    emit tilePainted(tile.index, tile.pixmap);
+  }
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormThread :: addTile(const WaveFormWidget::Tile& tile)
+{
+  if(tile.pixmap == NULL)
+    return;
+  m_mut.lock();
+  m_queue.push_back(tile);
+  m_mut.unlock();
+  m_sem.release();
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormThread :: clear()
+{
+  m_mut.lock();
+  int size = m_queue.size();
+  for(int i = 0; i < size; i++)
+    delete m_queue[i].pixmap;
+  m_queue.clear();
+  m_mut.unlock();
+}
+/*----------------------------------------------------------------------------*/
 WaveFormWidget :: WaveFormWidget(QWidget *parent)
   :QWidget(parent)
 {
@@ -46,6 +107,9 @@ WaveFormWidget :: WaveFormWidget(QWidget *parent)
   m_gridColor = Qt::yellow;
   m_markerColor = Qt::green;
   m_painted = false;
+  m_thread = new WaveFormThread(this);
+  connect(m_thread, SIGNAL(tilePainted(int,QPixmap*)), this, SLOT(onTilePainted(int,QPixmap*)), Qt::QueuedConnection);
+  m_thread->start();
 }
 /*----------------------------------------------------------------------------*/
 WaveFormWidget :: ~WaveFormWidget()
@@ -59,6 +123,7 @@ void WaveFormWidget :: clear()
     if(m_tiles[i].pixmap != NULL)
       delete m_tiles[i].pixmap;
   m_tiles.clear();
+  m_thread->clear();
   m_painted = false;
 }
 /*----------------------------------------------------------------------------*/
@@ -89,6 +154,7 @@ void WaveFormWidget :: init(QSize size)
   for(qint64 i = 0; i < m_tileCount; i++)
   {
     Tile t;
+    t.index = (int) i;
     t.startPosition = i * m_tileSize + m_startPosition;
     t.pixmap = new QPixmap(tileSize);
     t.painted = false;
@@ -101,8 +167,14 @@ void WaveFormWidget :: drawTiles()
 {
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
+  {
     if(!m_tiles[i].painted)
-      drawTile(i);
+    {
+    //  drawTile(m_tiles[i]);
+      m_thread->addTile(m_tiles[i]);
+      m_tiles[i].pixmap = NULL;
+    }
+  }
   m_painted = true;
 }
 /*----------------------------------------------------------------------------*/
@@ -110,16 +182,13 @@ void WaveFormWidget :: redrawTiles()
 {
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
-     drawTile(i);
+     drawTile(m_tiles[i]);
   m_painted = true;
 }
 /*----------------------------------------------------------------------------*/
-void WaveFormWidget :: drawTile(int index)
+void WaveFormWidget :: drawTile(Tile &tile)
 {
-  if(index < 0 || index >= m_tiles.size())
-    return;
-
-  QPixmap *pixmap = m_tiles[index].pixmap;
+  QPixmap *pixmap = tile.pixmap;
   if(pixmap == NULL)
     return;
 
@@ -151,9 +220,9 @@ void WaveFormWidget :: drawTile(int index)
 
   //Draw signal
   painter.setPen(pen);
-  if(m_tiles[index].startPosition) //read last point
+  if(tile.startPosition) //read last point
   {
-    m_wav->seek(m_tiles[index].startPosition - 1, *m_in);
+    m_wav->seek(tile.startPosition - 1, *m_in);
     QVector<qreal> data = m_wav->readNext(*m_in);
     int c = data.size();
     for(int i = 0; i < channels && i < c; i++)
@@ -163,7 +232,7 @@ void WaveFormWidget :: drawTile(int index)
     }
   }
   else
-    m_wav->seek(m_tiles[index].startPosition, *m_in);
+    m_wav->seek(tile.startPosition, *m_in);
   for(qint64 p = 0; p < m_tileSize; p++)
   {
     qreal x = p * dX;
@@ -177,7 +246,7 @@ void WaveFormWidget :: drawTile(int index)
       lines[i].setP1(QPoint((int)x, (int)y));
     }
   }
-  m_tiles[index].painted = true;
+  tile.painted = true;
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: setWavFile(WavFile *w)
@@ -253,9 +322,11 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
 
     QImage img(r.size(), QImage::Format_RGB32);
     QPainter painter1(&img);
-
+    painter1.fillRect(QRect(0,0,r.width(), r.height()), m_fgColor);
     for(int i = 0; i < size; i++)
     {
+      if(m_tiles[i].pixmap == NULL)
+        continue;
       int x = (int)(i * m_tileSize * dX);
       if(x < r.right() && x + m_tiles[i].pixmap->width() >= r.left())
         painter1.drawPixmap(QPoint(x - r.left(), 0), *m_tiles[i].pixmap);
@@ -387,6 +458,7 @@ void WaveFormWidget :: setFilePosition(qint64 pos)
     m_startPosition = newStart;
     for(int i = 0; i < size; i++)
     {
+      m_tiles[i].index = i;
       m_tiles[i].startPosition = m_tileSize * i + m_startPosition;
       m_tiles[i].painted = false;
     }
@@ -410,7 +482,10 @@ void WaveFormWidget :: setFilePosition(qint64 pos)
     }
     int size = m_tiles.size();
     for(int i = 0; i < size; i++)
+    {
+      m_tiles[i].index = i;
       m_tiles[i].startPosition = m_tileSize * i + m_startPosition;
+    }
   }
   drawTiles();
   update();
@@ -471,6 +546,16 @@ void WaveFormWidget :: setWindowDuration(qint64 duration)
     m_windowSize = m_wav->length(m_windowDurationUs);
     init(size());
     drawTiles();
+    update();
+  }
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: onTilePainted(int index, QPixmap *pixmap)
+{
+  if(index >= 0 && index <= m_tiles.size())
+  {
+    m_tiles[index].pixmap = pixmap;
+    m_tiles[index].painted = true;
     update();
   }
 }
