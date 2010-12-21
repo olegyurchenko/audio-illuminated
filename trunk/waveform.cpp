@@ -51,26 +51,33 @@ void WaveFormThread :: run()
     WaveFormWidget::Tile tile;
 
     m_mut.lock();
-    empty = m_queue.isEmpty();
+    empty = m_tiles.isEmpty();
     if(!empty)
     {
-      tile = m_queue.first();
-      m_queue.pop_front();
+      tile = m_tiles.begin().value();
+      m_tiles.erase(m_tiles.begin());
     }
     m_mut.unlock();
     if(empty)
       continue;
+
+    m_drawMutex.lock();
     m_waveform->drawTile(tile);
-    emit tilePainted(tile.index, tile.pixmap);
+    emit tilePainted(tile.index, tile.image);
+    m_drawMutex.unlock();
+
+    m_mut.lock();
+    empty = m_tiles.isEmpty();
+    m_mut.unlock();
+    if(empty)
+      emit ready();
   }
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormThread :: addTile(const WaveFormWidget::Tile& tile)
 {
-  if(tile.pixmap == NULL)
-    return;
   m_mut.lock();
-  m_queue.push_back(tile);
+  m_tiles[tile.index] = tile;
   m_mut.unlock();
   m_sem.release();
 }
@@ -78,11 +85,10 @@ void WaveFormThread :: addTile(const WaveFormWidget::Tile& tile)
 void WaveFormThread :: clear()
 {
   m_mut.lock();
-  int size = m_queue.size();
-  for(int i = 0; i < size; i++)
-    delete m_queue[i].pixmap;
-  m_queue.clear();
+  m_tiles.clear();
   m_mut.unlock();
+  m_drawMutex.lock();
+  m_drawMutex.unlock();
 }
 /*----------------------------------------------------------------------------*/
 WaveFormWidget :: WaveFormWidget(QWidget *parent)
@@ -106,9 +112,10 @@ WaveFormWidget :: WaveFormWidget(QWidget *parent)
   m_fgColor = Qt::white;
   m_gridColor = Qt::yellow;
   m_markerColor = Qt::green;
-  m_painted = false;
+  m_noPainted = 0;
   m_thread = new WaveFormThread(this);
-  connect(m_thread, SIGNAL(tilePainted(int,QPixmap*)), this, SLOT(onTilePainted(int,QPixmap*)), Qt::QueuedConnection);
+  connect(m_thread, SIGNAL(tilePainted(int,QImage*)), this, SLOT(onTilePainted(int,QImage*)), Qt::QueuedConnection);
+  connect(m_thread, SIGNAL(ready()), this, SLOT(onTilesReady()), Qt::QueuedConnection);
   m_thread->start();
 }
 /*----------------------------------------------------------------------------*/
@@ -120,20 +127,10 @@ void WaveFormWidget :: clear()
 {
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
-    if(m_tiles[i].pixmap != NULL)
-      delete m_tiles[i].pixmap;
+    if(m_tiles[i].image != NULL)
+      delete m_tiles[i].image;
   m_tiles.clear();
   m_thread->clear();
-  m_painted = false;
-}
-/*----------------------------------------------------------------------------*/
-void WaveFormWidget :: erase(int i)
-{
-  TileList::iterator it = m_tiles.begin() + i;
-  if(it->pixmap != NULL)
-    delete it->pixmap;
-  m_tiles.erase(it);
-  m_painted = false;
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: init(QSize size)
@@ -156,53 +153,62 @@ void WaveFormWidget :: init(QSize size)
     Tile t;
     t.index = (int) i;
     t.startPosition = i * m_tileSize + m_startPosition;
-    t.pixmap = new QPixmap(tileSize);
+    t.image = new QImage(tileSize, QImage::Format_RGB32);
     t.painted = false;
     m_tiles.append(t);
   }
-  m_painted = false;
+  m_noPainted = 0;
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: drawTiles()
 {
+  m_thread->clear();
+  m_noPainted = 0;
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
   {
     if(!m_tiles[i].painted)
     {
-    //  drawTile(m_tiles[i]);
+      m_tiles[i].index = i;
+      m_tiles[i].startPosition = m_tileSize * i + m_startPosition;
       m_thread->addTile(m_tiles[i]);
-      m_tiles[i].pixmap = NULL;
+      m_noPainted ++;
     }
   }
-  m_painted = true;
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: redrawTiles()
 {
+  m_thread->clear();
+  m_noPainted = 0;
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
-     drawTile(m_tiles[i]);
-  m_painted = true;
+  {
+    m_tiles[i].painted = false;
+    m_tiles[i].index = i;
+    m_tiles[i].startPosition = m_tileSize * i + m_startPosition;
+    m_thread->addTile(m_tiles[i]);
+    m_noPainted ++;
+  }
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: drawTile(Tile &tile)
 {
-  QPixmap *pixmap = tile.pixmap;
-  if(pixmap == NULL)
+  QImage *image = tile.image;
+  if(image == NULL)
     return;
 
-  QPainter painter(pixmap);
+  QPainter painter(image);
 
   int channels = m_wav->format().channels();
 
   QPen pen(m_fgColor);
   painter.setPen(pen);
 
-  painter.fillRect(pixmap->rect(), m_bgColor);
+  painter.fillRect(image->rect(), m_bgColor);
 
-  qreal dX = (qreal)pixmap->width() / (qreal) m_tileSize;
-  qreal dY = (qreal)pixmap->height() / (2 * (qreal) channels);
+  qreal dX = (qreal)image->width() / (qreal) m_tileSize;
+  qreal dY = (qreal)image->height() / (2 * (qreal) channels);
 
   QVector<QLine> lines(channels);
   QVector<int> baseY(channels);
@@ -213,7 +219,7 @@ void WaveFormWidget :: drawTile(Tile &tile)
   {
     baseY[i] = (int)(dY + dY * i * 2);
     lines[i].setP1(QPoint(0, baseY[i]));
-    lines[i].setP2(QPoint(pixmap->width(), baseY[i]));
+    lines[i].setP2(QPoint(image->width(), baseY[i]));
     painter.drawLine(lines[i]);
   }
 
@@ -272,7 +278,8 @@ void WaveFormWidget :: setWavFile(WavFile *w)
     return;
   }
   init(size());
-  setFilePosition(0);
+  redrawTiles();
+  update();
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: wavFileOpened(WavFile *w)
@@ -299,11 +306,12 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
   {
-    if(m_tiles[i].painted && m_tiles[i].pixmap != NULL)
-      painter.drawPixmap((int)(i * m_tileSize * dX), 0, *m_tiles[i].pixmap);
+    if(m_tiles[i].painted)
+      painter.drawImage((int)(i * m_tileSize * dX), 0, *m_tiles[i].image);
   }
 
   QPen pen(m_markerColor);
+  QPen pen1(m_fgColor);
   painter.setPen(pen);
   //Draw position line
   painter.drawLine(QPointF(dX * (m_position - m_startPosition), 0), QPointF(dX * (m_position - m_startPosition), height()));
@@ -322,18 +330,23 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
 
     QImage img(r.size(), QImage::Format_RGB32);
     QPainter painter1(&img);
-    painter1.fillRect(QRect(0,0,r.width(), r.height()), m_fgColor);
+    painter1.fillRect(QRect(0,0,r.width(), r.height()), m_bgColor);
     for(int i = 0; i < size; i++)
     {
-      if(m_tiles[i].pixmap == NULL)
+      if(!m_tiles[i].painted)
         continue;
       int x = (int)(i * m_tileSize * dX);
-      if(x < r.right() && x + m_tiles[i].pixmap->width() >= r.left())
-        painter1.drawPixmap(QPoint(x - r.left(), 0), *m_tiles[i].pixmap);
+      if(x < r.right() && x + m_tiles[i].image->width() >= r.left())
+        painter1.drawImage(QPoint(x - r.left(), 0), *m_tiles[i].image);
     }
 
+    painter1.setPen(pen);
+    //Draw position line
+    painter1.drawLine(QPointF( dX * (m_position - m_startPosition) - r.left(), 0), QPointF( dX * (m_position - m_startPosition) - r.left(), img.height()));
     img.invertPixels();
+
     painter.drawImage(r.left(), r.top(), img);
+    painter.setPen(pen1);
     painter.drawRect(r);
 
   }
@@ -426,7 +439,6 @@ void WaveFormWidget :: setFilePosition(qint64 pos)
   if(m_wav == NULL || m_in == NULL)
     return;
 
-  bool modified = m_position != pos;
   m_position = pos;
   qint64 wavSize = m_wav->length();
   qint64 newStart = m_startPosition;
@@ -441,27 +453,18 @@ void WaveFormWidget :: setFilePosition(qint64 pos)
 
   if(newStart == m_startPosition)
   {
-    if(!m_painted)
-    {
-      modified = true;
-      drawTiles();
-    }
-    if(modified)
-      update();
+    drawTiles();
+    update();
     return;
   }
 
 
-  if(!m_painted || ABS(m_startPosition - newStart) >= m_windowSize)
+  if(ABS(m_startPosition - newStart) >= m_windowSize)
   {
-    int size = m_tiles.size();
     m_startPosition = newStart;
+    int size = m_tiles.size();
     for(int i = 0; i < size; i++)
-    {
-      m_tiles[i].index = i;
-      m_tiles[i].startPosition = m_tileSize * i + m_startPosition;
       m_tiles[i].painted = false;
-    }
   }
   else
   {
@@ -480,13 +483,8 @@ void WaveFormWidget :: setFilePosition(qint64 pos)
       m_tiles.pop_front();
       m_startPosition += m_tileSize;
     }
-    int size = m_tiles.size();
-    for(int i = 0; i < size; i++)
-    {
-      m_tiles[i].index = i;
-      m_tiles[i].startPosition = m_tileSize * i + m_startPosition;
-    }
   }
+
   drawTiles();
   update();
   emit windowStartChanged(m_startPosition);
@@ -550,13 +548,17 @@ void WaveFormWidget :: setWindowDuration(qint64 duration)
   }
 }
 /*----------------------------------------------------------------------------*/
-void WaveFormWidget :: onTilePainted(int index, QPixmap *pixmap)
+void WaveFormWidget :: onTilePainted(int index, QImage *image)
 {
   if(index >= 0 && index <= m_tiles.size())
   {
-    m_tiles[index].pixmap = pixmap;
+    //m_tiles[index].image = image;
     m_tiles[index].painted = true;
-    update();
   }
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormWidget :: onTilesReady()
+{
+  update();
 }
 /*----------------------------------------------------------------------------*/

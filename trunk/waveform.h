@@ -17,13 +17,13 @@
 #define WAVEFORM_H_1291720077
 /*----------------------------------------------------------------------------*/
 #include <QWidget>
-#include <QPixmap>
+#include <QImage>
 #include <QVector>
 #include <QColor>
 #include <QList>
 #include <QPoint>
 #include <QThread>
-#include <QQueue>
+#include <QMap>
 #include <QMutex>
 #include <QSemaphore>
 
@@ -57,14 +57,14 @@ protected:
   qint64 m_tileDuration;
   qint64 m_tileSize;
   qint64 m_tileCount;
-  bool m_painted;
+  int m_noPainted;
 
   typedef struct
   {
     int index;
     qint64 startPosition;
     bool painted;
-    QPixmap *pixmap;
+    QImage *image;
   } Tile;
 
   typedef QList<Tile> TileList;
@@ -113,7 +113,8 @@ public slots:
   void setMarkerColor(QColor c);
   void setWindowDuration(qint64 duration);
 protected slots:
-  void onTilePainted(int index, QPixmap *pixmap);
+  void onTilePainted(int index, QImage *image);
+  void onTilesReady();
 signals:
   void windowStartChanged(qint64);
 
@@ -124,11 +125,12 @@ class WaveFormThread : public QThread
 {
   Q_OBJECT
 protected:
-  typedef QQueue<WaveFormWidget::Tile> TileQueue;
-  TileQueue m_queue;
+  typedef QMap<int, WaveFormWidget::Tile> TileMap;
+  TileMap m_tiles;
   bool m_terminated;
   QSemaphore m_sem;
   QMutex m_mut;
+  QMutex m_drawMutex;
   WaveFormWidget *m_waveform;
 public:
   WaveFormThread(WaveFormWidget *parent);
@@ -137,7 +139,8 @@ public:
   void addTile(const WaveFormWidget::Tile& tile);
   void clear();
 signals:
-  void tilePainted(int index, QPixmap *pixmap);
+  void tilePainted(int index, QImage *image);
+  void ready();
 };
 /*----------------------------------------------------------------------------*/
 #endif /*WAVEFORM_H_1291720077*/
