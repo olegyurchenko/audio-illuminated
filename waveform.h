@@ -113,7 +113,7 @@ public slots:
   void setMarkerColor(QColor c);
   void setWindowDuration(qint64 duration);
 protected slots:
-  void onTilePainted(int index, QImage *image);
+  void onTilePainted(int index, int transNo);
   void onTilesReady();
 signals:
   void windowStartChanged(qint64);
@@ -130,7 +130,8 @@ protected:
   bool m_terminated;
   QSemaphore m_sem;
   QMutex m_mut;
-  QMutex m_drawMutex;
+  QMutex m_global;
+  int m_transNo;
   WaveFormWidget *m_waveform;
 public:
   WaveFormThread(WaveFormWidget *parent);
@@ -138,8 +139,14 @@ public:
   virtual void run();
   void addTile(const WaveFormWidget::Tile& tile);
   void clear();
+  void clearQueue();
+  int transNo();
+
+  void lock() {m_global.lock();}
+  void unlock(){m_global.unlock();}
+
 signals:
-  void tilePainted(int index, QImage *image);
+  void tilePainted(int index, int transNo);
   void ready();
 };
 /*----------------------------------------------------------------------------*/

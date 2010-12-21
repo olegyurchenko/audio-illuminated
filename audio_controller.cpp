@@ -89,13 +89,13 @@ bool AudioController :: open(QFile &file)
 /*----------------------------------------------------------------------------*/
 void AudioController :: close()
 {
+  emit wavClose();
   if(m_wavFile != NULL)
     delete m_wavFile;
   m_wavFile = NULL;
   if(m_audioOutput != NULL)
     delete m_audioOutput;
   m_audioOutput = NULL;
-  emit wavClose();
 }
 /*----------------------------------------------------------------------------*/
 /**Return audio duration in us*/
@@ -255,9 +255,14 @@ void AudioController :: onOutputNotify()
     return;
 
   qint64 usPlayed = m_audioOutput->processedUSecs();
-  emit playPosition(m_playStart + duration2quants(usPlayed));
+  bool needStop = false;
   if(usPlayed >= m_playDuration)
+  {
+    needStop = true;
+    usPlayed = m_playDuration;
+  }
+  emit playPosition(m_playStart + duration2quants(usPlayed));
+  if(needStop)
     m_audioOutput->stop();
-
 }
 /*----------------------------------------------------------------------------*/
