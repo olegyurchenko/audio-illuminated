@@ -37,7 +37,15 @@ WaveFormThread :: ~WaveFormThread()
   m_terminated = true;
   clear();
   m_sem.release();
-  wait(1000);
+  wait();
+}
+/*----------------------------------------------------------------------------*/
+int WaveFormThread :: transNo()
+{
+  //m_mut.lock();
+  int n = m_transNo;
+  //m_mut.unlock();
+  return n;
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormThread :: run()
@@ -49,7 +57,9 @@ void WaveFormThread :: run()
 
     bool empty = false;
     WaveFormWidget::Tile tile;
+    int transNo;
 
+    lock();
     m_mut.lock();
     empty = m_tiles.isEmpty();
     if(!empty)
@@ -57,14 +67,17 @@ void WaveFormThread :: run()
       tile = m_tiles.begin().value();
       m_tiles.erase(m_tiles.begin());
     }
+    transNo = m_transNo;
     m_mut.unlock();
     if(empty)
+    {
+      unlock();
       continue;
+    }
 
-    m_drawMutex.lock();
     m_waveform->drawTile(tile);
-    emit tilePainted(tile.index, tile.image);
-    m_drawMutex.unlock();
+    unlock();
+    emit tilePainted(tile.index, transNo);
 
     m_mut.lock();
     empty = m_tiles.isEmpty();
@@ -82,13 +95,20 @@ void WaveFormThread :: addTile(const WaveFormWidget::Tile& tile)
   m_sem.release();
 }
 /*----------------------------------------------------------------------------*/
-void WaveFormThread :: clear()
+void WaveFormThread :: clearQueue()
 {
   m_mut.lock();
   m_tiles.clear();
+  m_transNo ++;
   m_mut.unlock();
-  m_drawMutex.lock();
-  m_drawMutex.unlock();
+}
+/*----------------------------------------------------------------------------*/
+void WaveFormThread :: clear()
+{
+  lock();
+  m_tiles.clear();
+  m_transNo ++;
+  unlock();
 }
 /*----------------------------------------------------------------------------*/
 WaveFormWidget :: WaveFormWidget(QWidget *parent)
@@ -114,27 +134,29 @@ WaveFormWidget :: WaveFormWidget(QWidget *parent)
   m_markerColor = Qt::green;
   m_noPainted = 0;
   m_thread = new WaveFormThread(this);
-  connect(m_thread, SIGNAL(tilePainted(int,QImage*)), this, SLOT(onTilePainted(int,QImage*)), Qt::QueuedConnection);
+  connect(m_thread, SIGNAL(tilePainted(int,int)), this, SLOT(onTilePainted(int,int)), Qt::QueuedConnection);
   connect(m_thread, SIGNAL(ready()), this, SLOT(onTilesReady()), Qt::QueuedConnection);
   m_thread->start();
 }
 /*----------------------------------------------------------------------------*/
 WaveFormWidget :: ~WaveFormWidget()
 {
+  delete m_thread;
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: clear()
 {
+  m_thread->clear();
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
     if(m_tiles[i].image != NULL)
       delete m_tiles[i].image;
   m_tiles.clear();
-  m_thread->clear();
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: init(QSize size)
 {
+  clear();
   m_windowSize = m_wav->length(m_windowDurationUs);
   m_tileSize = m_wav->length(m_tileDuration);
   m_tileCount = m_windowSize / m_tileSize;
@@ -145,7 +167,6 @@ void WaveFormWidget :: init(QSize size)
     m_tileCount = 100;
   }
   */
-  clear();
   QSize tileSize(1 + size.width()/m_tileCount, size.height());
   //QSize tileSize(m_tileSize, m_wav->format().channels() * 200);
   for(qint64 i = 0; i < m_tileCount; i++)
@@ -162,7 +183,7 @@ void WaveFormWidget :: init(QSize size)
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: drawTiles()
 {
-  m_thread->clear();
+  m_thread->clearQueue();
   m_noPainted = 0;
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
@@ -179,7 +200,7 @@ void WaveFormWidget :: drawTiles()
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: redrawTiles()
 {
-  m_thread->clear();
+  m_thread->clearQueue();
   m_noPainted = 0;
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
@@ -257,6 +278,7 @@ void WaveFormWidget :: drawTile(Tile &tile)
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: setWavFile(WavFile *w)
 {
+  m_thread->clear();
   m_wav = w;
   if(m_in != NULL)
     delete m_in;
@@ -548,9 +570,9 @@ void WaveFormWidget :: setWindowDuration(qint64 duration)
   }
 }
 /*----------------------------------------------------------------------------*/
-void WaveFormWidget :: onTilePainted(int index, QImage *image)
+void WaveFormWidget :: onTilePainted(int index, int transNo)
 {
-  if(index >= 0 && index <= m_tiles.size())
+  if(index >= 0 && index <= m_tiles.size() && transNo == m_thread->transNo())
   {
     //m_tiles[index].image = image;
     m_tiles[index].painted = true;
