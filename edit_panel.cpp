@@ -94,7 +94,8 @@ void EditPanel :: onWavClose()
 /*----------------------------------------------------------------------------*/
 void EditPanel :: onPlayPosition(qint64 samples)
 {
-  hScroll->setSliderPosition( (int)(STEP * samples / m_waveForm->windowLength() ));
+  if(m_waveForm->windowLength())
+    hScroll->setSliderPosition( (int)(STEP * samples / m_waveForm->windowLength() ));
 }
 /*----------------------------------------------------------------------------*/
 void EditPanel :: onStartPlay()

@@ -21,6 +21,7 @@
 #include <QResizeEvent>
 #include <QRect>
 #include <QImage>
+#include <QPoint>
 
 #define ABS(a) ((a) < 0 ? -(a) : (a))
 
@@ -231,22 +232,26 @@ void WaveFormWidget :: drawTile(Tile &tile)
   qreal dX = (qreal)image->width() / (qreal) m_tileSize;
   qreal dY = (qreal)image->height() / (2 * (qreal) channels);
 
-  QVector<QLine> lines(channels);
+  typedef QVector<QPoint> Points;
+  QVector<Points> points(channels, Points(m_tileSize));
+
   QVector<int> baseY(channels);
 
   QPen pen1(m_gridColor);
   painter.setPen(pen1);
   for(int i = 0; i < channels; i++)
   {
+    QLine line;
     baseY[i] = (int)(dY + dY * i * 2);
-    lines[i].setP1(QPoint(0, baseY[i]));
-    lines[i].setP2(QPoint(image->width(), baseY[i]));
-    painter.drawLine(lines[i]);
+    QPoint p1(0, baseY[i]);
+    line.setP1(p1);
+    line.setP2(QPoint(image->width(), baseY[i]));
+    painter.drawLine(line);
+    points[i][0] = p1;
   }
 
 
   //Draw signal
-  painter.setPen(pen);
   if(tile.startPosition) //read last point
   {
     m_wav->seek(tile.startPosition - 1, *m_in);
@@ -255,7 +260,7 @@ void WaveFormWidget :: drawTile(Tile &tile)
     for(int i = 0; i < channels && i < c; i++)
     {
       qreal y = data[i] * dY + baseY[i];
-      lines[i].setP1(QPoint(0, (int)y));
+      points[i][0] = QPoint(0, (int)y);
     }
   }
   else
@@ -268,11 +273,17 @@ void WaveFormWidget :: drawTile(Tile &tile)
     for(int i = 0; i < channels && i < c; i++)
     {
       qreal y = data[i] * dY + baseY[i];
-      lines[i].setP2(QPoint((int)x, (int)y));
-      painter.drawLine(lines[i]);
-      lines[i].setP1(QPoint((int)x, (int)y));
+      points[i][p] = QPoint((int)x, (int)y);
     }
   }
+
+  painter.setPen(pen);
+  for(int i = 0; i < channels; i++)
+  {
+    Points &p = points[i];
+    painter.drawPolyline(p.data(), p.size());
+  }
+
   tile.painted = true;
 }
 /*----------------------------------------------------------------------------*/

@@ -174,18 +174,30 @@ qint64 WavFile :: length(qint64 microSeconds) const
 /*----------------------------------------------------------------------------*/
 QVector<qreal> WavFile :: readNext(QIODevice &device) const
 {
-  QVector<qreal> output;
+/* Before optimize
+  QVector<qreal> output(m_format.channels(), 0.0);
   QVector<char> inputSample(2 * m_format.channels());
-#if 1
   if (device.read(inputSample.data(), inputSample.count()))
   {
     for (int i = 0; i < m_format.channels(); i++)
     {
       const qint16* input = reinterpret_cast<const qint16*>(inputSample.data() + 2 * i);
-      output.append(pcmToReal(qFromLittleEndian<qint16>(*input)));
+      output[i] = pcmToReal(qFromLittleEndian<qint16>(*input));
     }
   }
-#endif
+  return output;
+*/
+/*After optimize*/
+  int channels = m_format.channels();
+  QVector<qreal> output(channels, 0.0);
+  char sample[2];
+  const qint16* input = reinterpret_cast<const qint16*>(sample);
+  for(int i = 0; i < channels; i++)
+  {
+    if(!device.read(sample, 2))
+      break;
+    output[i] = pcmToReal(qFromLittleEndian<qint16>(*input));
+  }
   return output;
 }
 /*----------------------------------------------------------------------------*/
