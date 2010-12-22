@@ -9,6 +9,8 @@
 #include <QActionGroup>
 #include <project_file.h>
 /*----------------------------------------------------------------------------*/
+EditorWindow* mainWindow = NULL;
+/*----------------------------------------------------------------------------*/
 EditorWindow::EditorWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::EditorWindow)

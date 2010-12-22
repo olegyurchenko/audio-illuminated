@@ -47,5 +47,5 @@ signals:
     void changeEditMode();
 };
 /*----------------------------------------------------------------------------*/
-
+extern EditorWindow* mainWindow;
 #endif // EDITOR_WINDOW_H
