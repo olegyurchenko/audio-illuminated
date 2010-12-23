@@ -24,6 +24,7 @@ EditPanel :: EditPanel(QWidget *parent)
   m_channelId = 1;
 
   m_waveForm = new WaveFormWidget(this);
+  m_waveForm->setObjectName("vaveForm");
   m_waveForm->setBgColor(palette().color(QPalette::Window));
   m_waveForm->setFgColor(palette().color(QPalette::Foreground));
   m_waveForm->setMarkerColor(Qt::darkBlue);
@@ -38,6 +39,8 @@ EditPanel :: EditPanel(QWidget *parent)
   connect(audioController, SIGNAL(playPosition(qint64)), m_waveForm, SLOT(setFilePosition(qint64)));
 
   m_channelEdit = new ChannelEdit(this);
+  m_channelEdit->setObjectName("channelEdit");
+
   vbLayout->addWidget(m_channelEdit);
   m_channelEdit->setChannelId(m_channelId);
   m_channelEdit->setBgColor(palette().color(QPalette::Base));

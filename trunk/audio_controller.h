@@ -24,6 +24,12 @@ class QAudioOutput;
 class AudioController : public QThread
 {
   Q_OBJECT
+  Q_PROPERTY(WavFile* wavFile READ wavFile)
+  Q_PROPERTY(qint64 duration READ duration)
+  Q_PROPERTY(qint64 length READ length)
+  Q_PROPERTY(bool isPlay READ isPlay)
+  Q_PROPERTY(const QAudioFormat& format READ format)
+
 private:
   WavFile *m_wavFile;
   QAudioOutput *m_audioOutput;

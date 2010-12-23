@@ -8,7 +8,9 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     audioController = new AudioController(&a);
+    audioController->setObjectName("audioController");
     effectController = new EffectController(&a);
+    effectController->setObjectName("effectController");
 
     //a.setStyle("Plastique");
     a.setStyle("Cleanlooks");

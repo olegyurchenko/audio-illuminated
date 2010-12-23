@@ -25,6 +25,11 @@
 class WavFile : public QObject
 {
 Q_OBJECT
+  Q_PROPERTY(QString fileName READ fileName)
+  Q_PROPERTY(qint64 duration READ duration)
+  Q_PROPERTY(qint64 length READ length)
+  Q_PROPERTY(const QAudioFormat& format READ format)
+
 protected:
   QString m_fileName;
   QAudioFormat m_format;
