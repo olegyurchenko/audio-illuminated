@@ -21,7 +21,18 @@
 #include <editor_window.h>
 #include <audio_controller.h>
 #include <effect_controller.h>
+#include <gui_qscript.h>
+#include <wav_qscript.h>
+#include <QtScript>
 
+/*----------------------------------------------------------------------------*/
+struct QtMetaObject : private QObject
+ {
+ public:
+     static const QMetaObject *get()
+         { return &static_cast<QtMetaObject*>(0)->staticQtMetaObject; }
+ };
+/*----------------------------------------------------------------------------*/
 /**Registration internal types*/
 void registerTypes(QScriptEngine *engine);
 /**Run js script*/
@@ -61,6 +72,12 @@ void registerTypes(QScriptEngine *engine)
 {
   QScriptValue app = engine->newQObject(qApp);
   engine->globalObject().setProperty("application", app);
+  //We initialize the script engine to have the Qt namespace, so that e.g., Qt.Key_Left will be available to script code.
+  QScriptValue Qt = engine->newQMetaObject(QtMetaObject::get());
+  engine->globalObject().setProperty("Qt", Qt);
+  registerGuiTypes(engine);
+  QAudioFormatPrototype::registerPrototype(engine);
+  WavFileWrapper::registerWrapper(engine);
 }
 /*----------------------------------------------------------------------------*/
 void loadScripts(QObject *parent)

@@ -9,6 +9,8 @@ QT       += multimedia
 QT       += script
 QT       += scripttools
 
+CONFIG += uitools
+
 TARGET = illumination-edit
 TEMPLATE = app
 
@@ -22,7 +24,8 @@ SOURCES += main.cpp\
     ../edit_panel.cpp \
     ../channel_edit.cpp \
     ../project_file.cpp \
-    ../qscript_wrap.cpp
+    ../qscript_wrap.cpp \
+    ../gui_qscript.cpp
 
 HEADERS  += editor_window.h \
     ../waveform.h \
@@ -33,7 +36,9 @@ HEADERS  += editor_window.h \
     ../edit_panel.h \
     ../channel_edit.h \
     ../project_file.h \
-    ../qscript_wrap.h
+    ../qscript_wrap.h \
+    ../gui_qscript.h \
+    ../wav_qscript.h
 
 FORMS    += editorwindow.ui
 
