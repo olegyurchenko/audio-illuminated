@@ -64,6 +64,15 @@ class QAudioFormatPrototype
     return QScriptValue(f->codec());
   }
   //---------------------------
+  static QScriptValue frequency(QScriptContext *context, QScriptEngine *engine)
+  {
+    QAudioFormat *f = qscriptvalue_cast<QAudioFormat *>(context->thisObject());
+    if(f == NULL)
+      return context->throwError(QScriptContext::TypeError, "QAudioFormatPrototype: this object is not a QAudioFormatPrototype");
+
+    return QScriptValue(f->frequency());
+  }
+  //---------------------------
   static QScriptValue sampleSize(QScriptContext *context, QScriptEngine *engine)
   {
     QAudioFormat *f = qscriptvalue_cast<QAudioFormat *>(context->thisObject());
@@ -92,6 +101,7 @@ public:
     prototype.setProperty("channelCount", engine->newFunction(channelCount), QScriptValue::PropertyGetter);
     prototype.setProperty("channels", engine->newFunction(channelCount), QScriptValue::PropertyGetter);
     prototype.setProperty("codec", engine->newFunction(codec), QScriptValue::PropertyGetter);
+    prototype.setProperty("frequency", engine->newFunction(frequency), QScriptValue::PropertyGetter);
     prototype.setProperty("sampleSize", engine->newFunction(sampleSize), QScriptValue::PropertyGetter);
     prototype.setProperty("sampleType", engine->newFunction(sampleType), QScriptValue::PropertyGetter);
 

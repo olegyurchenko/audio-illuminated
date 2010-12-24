@@ -16,6 +16,7 @@
 #include <QPluginLoader>
 #include <QDir>
 #include <QApplication>
+#include <QtDebug>
 #include <audio_controller.h>
 
 EffectController* effectController = NULL;
@@ -116,6 +117,16 @@ EffectProperties* EffectController :: newEffect(int effectId, int channel)
   return &m_properties.last();
 }
 /*----------------------------------------------------------------------------*/
+void EffectController :: clear()
+{
+  m_effectSelected = -1;
+  m_windowStart = -1;
+  m_windowSize = -1;
+  m_properties.clear();
+  emit efectSelect(-1);
+  emit projectModify();
+}
+/*----------------------------------------------------------------------------*/
 void EffectController :: deleteEffect(int id)
 {
   if(m_effectSelected == id)
@@ -136,8 +147,9 @@ void EffectController :: deleteEffect(int id)
   }
 }
 /*----------------------------------------------------------------------------*/
-EffectController::PropPointList& EffectController :: selectEffects(qint64 startUs, qint64 sizeUs)
+QList<EffectProperties*> EffectController :: selectEffects(qint64 startUs, qint64 sizeUs)
 {
+  //qDebug() << "selectEfeects(" << startUs << sizeUs << ")";
   if(startUs == m_windowStart && sizeUs == m_windowSize)
     return m_lastSelect;
   m_windowStart = startUs;
@@ -149,9 +161,11 @@ EffectController::PropPointList& EffectController :: selectEffects(qint64 startU
   for(PropList::iterator it = m_properties.begin(); it != end; it++)
   {
     qint64 t = it->timeStart();
+    //qDebug() << it->timeStart();
     if(t >= startUs && t < endUs)
       m_lastSelect.append(&*it);
   }
+  //qDebug() << "selectEfeects(" << startUs << sizeUs << ")" << m_lastSelect.size();
   return m_lastSelect;
 }
 /*----------------------------------------------------------------------------*/

@@ -154,9 +154,10 @@ void EditorWindow::onFileNew()
     return;
 
   m_fileName = QString();
+  audioController->close();
+  effectController->clear();
   if(!audioController->open(fileName))
     return;
-  effectController->properties().clear();
 }
 /*----------------------------------------------------------------------------*/
 void EditorWindow::onFileOpen()
@@ -171,11 +172,11 @@ void EditorWindow::onFileOpen()
     return;
 
   audioController->close();
+  effectController->clear();
 
   Project project;
   //project.wavFileName = audioController->wavFile()->fileName();
   project.props = &effectController->properties();
-  project.props->clear();
 
   if(!loadProject(m_fileName, &project))
     QMessageBox::critical(this, tr("Error"), tr("Error save file '%1'").arg(m_fileName));
