@@ -23,6 +23,7 @@
 #include <effect_controller.h>
 #include <gui_qscript.h>
 #include <wav_qscript.h>
+#include <effect_qscript.h>
 #include <QtScript>
 
 /*----------------------------------------------------------------------------*/
@@ -78,6 +79,7 @@ void registerTypes(QScriptEngine *engine)
   registerGuiTypes(engine);
   QAudioFormatPrototype::registerPrototype(engine);
   WavFileWrapper::registerWrapper(engine);
+  EffectPropertiesWrapper::registerWrapper(engine);
 }
 /*----------------------------------------------------------------------------*/
 void loadScripts(QObject *parent)
