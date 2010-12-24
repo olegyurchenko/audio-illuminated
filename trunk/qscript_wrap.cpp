@@ -25,7 +25,11 @@
 #include <wav_qscript.h>
 #include <effect_qscript.h>
 #include <QtScript>
-
+#include <QAction>
+#include <QMenu>
+#include <QMenuBar>
+#include <QIcon>
+#include <editor_window.h>
 /*----------------------------------------------------------------------------*/
 struct QtMetaObject : private QObject
  {
@@ -34,30 +38,8 @@ struct QtMetaObject : private QObject
          { return &static_cast<QtMetaObject*>(0)->staticQtMetaObject; }
  };
 /*----------------------------------------------------------------------------*/
-/**Registration internal types*/
-void registerTypes(QScriptEngine *engine);
 /**Run js script*/
-QScriptValue evaluateFile(QScriptEngine *engine, const QString &fileName);
 /*----------------------------------------------------------------------------*/
-#define ADD_QOBJECT_WRAPER(type) \
-class type ## Wrapper\
-{\
-public:\
-  static QScriptValue objConstructor(QScriptContext *context, QScriptEngine *engine)\
-  {\
-    QObject *parent = qobject_cast<QObject *>(context->argument(0).toQObject());\
-    QObject *object = new type(parent);\
-    return engine->newQObject(object, QScriptEngine::ScriptOwnership);\
-  }\
-};\
-do\
-{\
-  QScriptValue ctor = engine->newFunction(type##Wrapper::objConstructor);\
-  QScriptValue metaObject = engine->newQMetaObject(&type::staticMetaObject, ctor);\
-  engine->globalObject().setProperty(#type, metaObject);\
-} while(0)
-/*----------------------------------------------------------------------------*/
-/**Run js script*/
 QScriptValue evaluateFile(QScriptEngine *engine, const QString &fileName)
 {
   QFile file(fileName);
@@ -68,7 +50,55 @@ QScriptValue evaluateFile(QScriptEngine *engine, const QString &fileName)
   return engine->evaluate(file.readAll(), fileName);
 }
 /*----------------------------------------------------------------------------*/
+/*Script function to register extension*/
+/*----------------------------------------------------------------------------*/
+QScriptValue registerExtension(QScriptContext *context, QScriptEngine *engine)
+{
+  qDebug() << "registerExtension";
+  if(context->argumentCount() < 2)
+    return context->throwError(QScriptContext::TypeError, "Invalud argument count in registerExtension(extension, call)");
+  QScriptValue extension = context->argument(0);
+  QScriptValue text = extension.property("title");
+  QScriptValue subMenu = extension.property("subMenu");
+  if(!subMenu.isString())
+    subMenu = QScriptValue("&Extensions");
+  QScriptValue call = context->argument(1);
+  if(!text.isString() || !call.isFunction())
+    return context->throwError(QScriptContext::TypeError, "Extension havn't property 'title' or have not function to call (prop 'call')");
+
+  QObject *obj = mainWindow;
+  if(obj != NULL)
+    obj = obj->findChild<QMenuBar *>("menuBar");
+  if(obj == NULL)
+    return context->throwError(QScriptContext::UnknownError, "Can't found menuBar");
+
+  QMenu *parent = NULL;
+  QString parentText = subMenu.toString();
+
+  QObjectList::const_iterator end = obj->children().end();
+  for(QObjectList::const_iterator it = obj->children().begin(); it != end; it++)
+  {
+    QMenu *menu = qobject_cast<QMenu *>(*it);
+    if(menu != NULL && menu->title() == parentText)
+    {
+      parent = menu;
+      break;
+    }
+  }
+
+  if(parent == NULL)
+  {
+    parent = qobject_cast<QMenuBar *>(obj)->addMenu(parentText);
+  }
+
+  //TODO: Make script icon
+  QAction *action = parent->addAction(QIcon(":/resources/hand.png"), text.toString());
+  qScriptConnect(action, SIGNAL(triggered()), extension, call);
+  return engine->newQObject(action);
+}
+/*----------------------------------------------------------------------------*/
 /**Registration internal types*/
+/*----------------------------------------------------------------------------*/
 void registerTypes(QScriptEngine *engine)
 {
   QScriptValue app = engine->newQObject(qApp);
@@ -80,6 +110,8 @@ void registerTypes(QScriptEngine *engine)
   QAudioFormatPrototype::registerPrototype(engine);
   WavFileWrapper::registerWrapper(engine);
   EffectPropertiesWrapper::registerWrapper(engine);
+  app.setProperty("registerExtension", engine->newFunction(registerExtension));
+  engine->globalObject().setProperty("registerExtension", engine->newFunction(registerExtension));
 }
 /*----------------------------------------------------------------------------*/
 void loadScripts(QObject *parent)

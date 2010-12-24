@@ -25,7 +25,6 @@ Q_DECLARE_METATYPE(EffectProperties*);
 Q_DECLARE_METATYPE(QList<EffectProperties>)
 Q_DECLARE_METATYPE(QList<EffectProperties*>)
 
-static QScriptValue EffectPropertiesPrototype;
 class EffectPropertiesWrapper
 {
 protected:
@@ -33,24 +32,36 @@ protected:
   static QScriptValue toScriptValue(QScriptEngine *engine, const EffectProperties &p)
   {
     QScriptValue obj = engine->newVariant(QVariant::fromValue((EffectProperties*)&p));
-
-    if(!EffectPropertiesPrototype.isValid())
+    QScriptValue prototype = engine->globalObject().property("EffectPropertiesPrototype");
+    if(!prototype.isValid())
     {
-      EffectPropertiesPrototype = engine->newObject();
-      EffectPropertiesPrototype.setProperty("toString", engine->newFunction(toString));
-      EffectPropertiesPrototype.setProperty("id", engine->newFunction(id), QScriptValue::PropertyGetter);
-      EffectPropertiesPrototype.setProperty("effectId", engine->newFunction(effectId), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
-      EffectPropertiesPrototype.setProperty("channel", engine->newFunction(channel), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
-      EffectPropertiesPrototype.setProperty("timeStart", engine->newFunction(timeStart), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
-      EffectPropertiesPrototype.setProperty("property", engine->newFunction(property), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
+      prototype = engine->newObject();
+      prototype.setProperty("toString", engine->newFunction(toString));
+      prototype.setProperty("id", engine->newFunction(id), QScriptValue::PropertyGetter);
+      prototype.setProperty("effectId", engine->newFunction(effectId), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
+      prototype.setProperty("channel", engine->newFunction(channel), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
+      prototype.setProperty("timeStart", engine->newFunction(timeStart), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
+      prototype.setProperty("property", engine->newFunction(property), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
+      engine->globalObject().setProperty("EffectPropertiesPrototype", prototype);
     }
-    obj.setPrototype(EffectPropertiesPrototype);
+    obj.setPrototype(prototype);
     return obj;
   }
   //-------------------------
   static void fromScriptValue(const QScriptValue &obj, EffectProperties &p)
   {
     //????
+  }
+  //-------------------------
+  typedef EffectProperties* PEffectProperties;
+  //-------------------------
+  static QScriptValue pointToScriptValue(QScriptEngine *engine, const PEffectProperties &p)
+  {
+    return toScriptValue(engine, *p);
+  }
+  //-------------------------
+  static void pointFromScriptValue(const QScriptValue &obj, PEffectProperties &p)
+  {
   }
   //-------------------------
   static QScriptValue ctor(QScriptContext *context, QScriptEngine *engine)
@@ -80,16 +91,20 @@ protected:
   //---------------------------
   static QScriptValue toString(QScriptContext *context, QScriptEngine *engine)
   {
-    //EffectProperties *v = context->thisObject().toVariant().value<EffectProperties *>();
-    EffectProperties *v = qscriptvalue_cast<EffectProperties *>(context->thisObject());
+    EffectProperties *v = context->thisObject().toVariant().value<EffectProperties *>();
+    //EffectProperties *v = qscriptvalue_cast<EffectProperties *>(context->thisObject());
     if(v == NULL)
       return context->throwError(QScriptContext::TypeError, "EffectProperties.toString: this object is not a EffectPropertiesWrapper");
-    return QScriptValue(QString("EffectProperties"));
+    return QScriptValue(QString("Effect(id=%1,effectId=%2,channel=%3, timeStart=%4)").arg(
+        QString::number(v->id()),
+        QString::number(v->effectId()),
+        QString::number(v->channel()),
+        QString::number(v->timeStart())));
   }
   //---------------------------
   static QScriptValue id(QScriptContext *context, QScriptEngine *engine)
   {
-    EffectProperties *v = qscriptvalue_cast<EffectProperties *>(context->thisObject());
+    EffectProperties *v = context->thisObject().toVariant().value<EffectProperties *>();
     if(v == NULL)
       return context->throwError(QScriptContext::TypeError, "EffectPropertiesPrototypeg: this object is not a EffectPropertiesWrapper");
 
@@ -98,7 +113,7 @@ protected:
   //---------------------------
   static QScriptValue effectId(QScriptContext *context, QScriptEngine *engine)
   {
-    EffectProperties *v = qscriptvalue_cast<EffectProperties *>(context->thisObject());
+    EffectProperties *v = context->thisObject().toVariant().value<EffectProperties *>();
     if(v == NULL)
       return context->throwError(QScriptContext::TypeError, "EffectPropertiesPrototypeg: this object is not a EffectPropertiesWrapper");
 
@@ -110,7 +125,7 @@ protected:
   //---------------------------
   static QScriptValue channel(QScriptContext *context, QScriptEngine *engine)
   {
-    EffectProperties *v = qscriptvalue_cast<EffectProperties *>(context->thisObject());
+    EffectProperties *v = context->thisObject().toVariant().value<EffectProperties *>();
     if(v == NULL)
       return context->throwError(QScriptContext::TypeError, "EffectPropertiesPrototypeg: this object is not a EffectPropertiesWrapper");
 
@@ -122,7 +137,7 @@ protected:
   //---------------------------
   static QScriptValue timeStart(QScriptContext *context, QScriptEngine *engine)
   {
-    EffectProperties *v = qscriptvalue_cast<EffectProperties *>(context->thisObject());
+    EffectProperties *v = context->thisObject().toVariant().value<EffectProperties *>();
     if(v == NULL)
       return context->throwError(QScriptContext::TypeError, "EffectPropertiesPrototypeg: this object is not a EffectPropertiesWrapper");
 
@@ -134,7 +149,7 @@ protected:
   //---------------------------
   static QScriptValue property(QScriptContext *context, QScriptEngine *engine)
   {
-    EffectProperties *v = qscriptvalue_cast<EffectProperties *>(context->thisObject());
+    EffectProperties *v = context->thisObject().toVariant().value<EffectProperties *>();
     if(v == NULL)
       return context->throwError(QScriptContext::TypeError, "EffectPropertiesPrototypeg: this object is not a EffectPropertiesWrapper");
 
@@ -152,8 +167,11 @@ public:
   {
 
     qScriptRegisterMetaType(engine, toScriptValue, fromScriptValue);
+
     engine->globalObject().setProperty("EffectProperties", engine->newFunction(ctor));
     engine->globalObject().setProperty("Effect", engine->newFunction(ctor));
+
+    qScriptRegisterMetaType(engine, pointToScriptValue, pointFromScriptValue);
 
     qScriptRegisterSequenceMetaType<QList<EffectProperties> >(engine);
     qScriptRegisterSequenceMetaType<QList<EffectProperties*> >(engine);
