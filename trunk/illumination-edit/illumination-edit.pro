@@ -38,7 +38,8 @@ HEADERS  += editor_window.h \
     ../project_file.h \
     ../qscript_wrap.h \
     ../gui_qscript.h \
-    ../wav_qscript.h
+    ../wav_qscript.h \
+    ../effect_qscript.h
 
 FORMS    += editorwindow.ui
 

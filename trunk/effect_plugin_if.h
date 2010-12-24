@@ -37,6 +37,7 @@ protected:
 
 public:
   EffectProperties(int effectId, int id, int channel) {m_effectId = effectId; m_id = id; m_channel = channel; m_modified = false;}
+  EffectProperties() {}
 
   bool modified() const {return m_modified;}
   int effectId() const {return m_effectId;}

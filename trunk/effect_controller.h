@@ -22,6 +22,8 @@
 class EffectController : public QObject
 {
   Q_OBJECT
+  Q_PROPERTY(QList<EffectProperties> properties READ properties)
+
 public:
   typedef QList<EffectProperties> PropList;
   typedef QList<EffectProperties*> PropPointList;
@@ -62,6 +64,7 @@ public:
   EffectController(QObject *parent = NULL);
   virtual ~EffectController();
 
+public slots:
   int unique() {return ++m_unique;}
   EffectProperties *newEffect(int effectId, int channel);
   void deleteEffect(int id);
@@ -84,7 +87,7 @@ private:
   int m_effectToAdd;
   int m_effectSelected;
 
-public:
+public slots:
   EditMode mode() {return m_mode;}
   int effectToAdd() {return m_effectToAdd;}
   void setMode(EditMode m);
