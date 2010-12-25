@@ -19,6 +19,7 @@
 #include <QtDebug>
 #include <QLayout>
 #include <QFile>
+#include <QBuffer>
 /*----------------------------------------------------------------------------*/
 static QScriptValue widgetConstructor(QScriptContext *context, QScriptEngine *engine)
 {
@@ -82,6 +83,32 @@ static QScriptValue uiLoad(QScriptContext *context, QScriptEngine *engine)
   return engine->newQObject(widget, QScriptEngine::ScriptOwnership);
 }
 /*----------------------------------------------------------------------------*/
+/*Exec .ui text**/
+static QScriptValue evalUi(QScriptContext *context, QScriptEngine *engine)
+{
+  QUiLoader *loader = qobject_cast<QUiLoader*>(engine->globalObject().property("UiLoader").toQObject());
+  if(loader == NULL)
+  {
+    loader = new QUiLoader(engine);
+    engine->globalObject().setProperty("UiLoader", engine->newQObject(loader));
+  }
+
+  if(!context->argumentCount())
+    return context->throwError(QScriptContext::TypeError, "Invalid argument count for evalUi(text, parent=0)");
+
+  QBuffer buffer;
+  buffer.open(QBuffer::ReadWrite);
+  buffer.write(context->argument(0).toString().toLocal8Bit());
+
+  QWidget *parent = NULL;
+  if(context->argumentCount() > 1)
+    parent = qobject_cast<QWidget *>(context->argument(1).toQObject());
+
+  QWidget *widget = loader->load(&buffer, parent);
+
+  return engine->newQObject(widget, QScriptEngine::ScriptOwnership);
+}
+/*----------------------------------------------------------------------------*/
 /**Регистрация основных QT виджетов*/
 void registerGuiTypes(QScriptEngine *engine)
 {
@@ -111,6 +138,7 @@ void registerGuiTypes(QScriptEngine *engine)
   }
 
   engine->globalObject().setProperty("uiLoad", engine->newFunction(uiLoad));
+  engine->globalObject().setProperty("evelUi", engine->newFunction(evalUi));
 }
 /*----------------------------------------------------------------------------*/
 

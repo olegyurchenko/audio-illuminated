@@ -132,6 +132,7 @@ void loadScripts(QObject *parent)
 #endif
   if(scriptsDir.cd("scripts"))
   {
+    engine->globalObject().setProperty("scriptDir", QScriptValue(scriptsDir.absolutePath()));
     QStringList filters;
     filters << "*.js" << "*.ies" << "*.qs";
     scriptsDir.setNameFilters(filters);
