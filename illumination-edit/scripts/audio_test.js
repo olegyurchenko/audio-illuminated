@@ -19,7 +19,7 @@ AudioTest.prototype.onWavOpened = function (wavFile)
   print("channels = " + audioController.wavFile.format.channels)
   print("frequency = " + audioController.wavFile.format.frequency)
   print(wavFile.seek(1000000))
-  var data = wavFile.read(100)
+  var data = wavFile.readMix(100)
   for(i = 0; i < data.length; i++)
     print("data[" + i + "] = " + data[i])
 

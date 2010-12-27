@@ -3,8 +3,7 @@
 var audioController = application.findChild("audioController");
 function Extension()
 {
-  this.title = "Extension test"
-  this.subMenu = "JS extensions"
+  this.title = "JS extensions/Tests/Extension test"
   this.call = function()
   {
     print("Extension call")

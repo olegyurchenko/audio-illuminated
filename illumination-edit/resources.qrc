@@ -9,5 +9,6 @@
         <file>resources/find.png</file>
         <file>resources/hand.png</file>
         <file>resources/viewmag.png</file>
+        <file>resources/exec.png</file>
     </qresource>
 </RCC>

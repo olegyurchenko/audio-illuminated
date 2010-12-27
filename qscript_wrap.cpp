@@ -59,9 +59,6 @@ QScriptValue registerExtension(QScriptContext *context, QScriptEngine *engine)
     return context->throwError(QScriptContext::TypeError, "Invalud argument count in registerExtension(extension, call)");
   QScriptValue extension = context->argument(0);
   QScriptValue text = extension.property("title");
-  QScriptValue subMenu = extension.property("subMenu");
-  if(!subMenu.isString())
-    subMenu = QScriptValue("&Extensions");
   QScriptValue call = context->argument(1);
   if(!text.isString() || !call.isFunction())
     return context->throwError(QScriptContext::TypeError, "Extension havn't property 'title' or have not function to call (prop 'call')");
@@ -73,26 +70,51 @@ QScriptValue registerExtension(QScriptContext *context, QScriptEngine *engine)
     return context->throwError(QScriptContext::UnknownError, "Can't found menuBar");
 
   QMenu *parent = NULL;
-  QString parentText = subMenu.toString();
 
-  QObjectList::const_iterator end = obj->children().end();
-  for(QObjectList::const_iterator it = obj->children().begin(); it != end; it++)
+  QStringList parentList = text.toString().split('/', QString::SkipEmptyParts);
+  QString title;
+  if(parentList.size())
   {
-    QMenu *menu = qobject_cast<QMenu *>(*it);
-    if(menu != NULL && menu->title() == parentText)
+    title = parentList.last();
+    parentList.pop_back();
+  }
+
+  if(parentList.isEmpty())
+    parentList << "Extensions";
+
+  for(int i = 0; i < parentList.size(); i++)
+  {
+    parent = NULL;
+    QString parentText = parentList[i];
+    QObjectList::const_iterator end = obj->children().end();
+    for(QObjectList::const_iterator it = obj->children().begin(); it != end; it++)
     {
-      parent = menu;
-      break;
+      QMenu *menu = qobject_cast<QMenu *>(*it);
+      if(menu != NULL && menu->title() == parentText)
+      {
+        parent = menu;
+        obj = menu;
+        break;
+      }
+    }
+
+    if(parent == NULL)
+    {
+      QMenuBar *bar = qobject_cast<QMenuBar *>(obj);
+      if(bar != NULL)
+        parent = bar->addMenu(parentText);
+      else
+      {
+        QMenu *menu = qobject_cast<QMenu *>(obj);
+        if(menu != NULL)
+          parent = menu->addMenu(parentText);
+      }
+      obj = parent;
     }
   }
 
-  if(parent == NULL)
-  {
-    parent = qobject_cast<QMenuBar *>(obj)->addMenu(parentText);
-  }
-
   //TODO: Make script icon
-  QAction *action = parent->addAction(QIcon(":/resources/hand.png"), text.toString());
+  QAction *action = parent->addAction(QIcon(":/resources/exec.png"), title);
   qScriptConnect(action, SIGNAL(triggered()), extension, call);
   return engine->newQObject(action);
 }
