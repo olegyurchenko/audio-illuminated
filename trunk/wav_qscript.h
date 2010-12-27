@@ -171,6 +171,42 @@ protected:
     return array;
   }
   //---------------------------
+  static QScriptValue readMix(QScriptContext *context, QScriptEngine *engine)
+  {
+    WavFile *w = qobject_cast<WavFile *>(context->thisObject().toQObject());
+    QFile *file = qscriptvalue_cast<QFile *>(context->thisObject().property("__file__"));
+
+    if(w == NULL || file == NULL)
+      return context->throwError(QScriptContext::TypeError, "WavFileWrapper: this object is not a WavFileWrapper");
+
+    int count = 1;
+    if(context->argumentCount() >= 1)
+      count = context->argument(0).toInt32();
+
+
+    if(!file->isOpen())
+    {
+      file->setFileName(w->fileName());
+      if(!file->open(QIODevice::ReadOnly))
+        return engine->newArray();
+      if(!w->seek(0, *file))
+        return engine->newArray();
+    }
+
+    QScriptValue array = engine->newArray(count);
+    for(int i = 0; i < count; i++)
+    {
+      QVector<qreal> res = w->readNext(*file);
+      int size = res.size();
+      qreal val = 0;
+      for(int j = 0; j < size; j++)
+        val += res[j];
+      array.setProperty(i, val/size);
+    }
+
+    return array;
+  }
+  //---------------------------
   static QScriptValue toScriptValue(QScriptEngine *engine, const PWavFile &wav)
   {
     WavFile* w = qobject_cast<WavFile*>(wav);
@@ -181,6 +217,7 @@ protected:
     QFile *file = new QFile(w);
     obj.setProperty("seek", engine->newFunction(seek));
     obj.setProperty("read", engine->newFunction(read));
+    obj.setProperty("readMix", engine->newFunction(readMix));
     obj.setProperty("__file__", engine->newQObject(file));
 
     return obj;

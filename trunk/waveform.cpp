@@ -115,6 +115,7 @@ void WaveFormThread :: clear()
 WaveFormWidget :: WaveFormWidget(QWidget *parent)
   :QWidget(parent)
 {
+  setFocusPolicy( Qt::StrongFocus);
   m_startPosition = 0;
   m_windowDurationUs = 1000000; //1s
   m_timeRuler = 100000; //100ms
