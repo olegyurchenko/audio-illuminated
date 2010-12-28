@@ -7,6 +7,8 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    a.setWindowIcon(QIcon(":/resources/effect.png"));
+
     audioController = new AudioController(&a);
     audioController->setObjectName("audioController");
     effectController = new EffectController(&a);
@@ -16,6 +18,7 @@ int main(int argc, char *argv[])
     a.setStyle("Cleanlooks");
 
     mainWindow = new EditorWindow();
+    //qobject_cast<QObject *>(mainWindow)->setParent(&a);
 
     loadScripts(&a);
 

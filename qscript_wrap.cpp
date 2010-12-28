@@ -119,11 +119,22 @@ QScriptValue registerExtension(QScriptContext *context, QScriptEngine *engine)
   return engine->newQObject(action);
 }
 /*----------------------------------------------------------------------------*/
+QScriptValue processEvents(QScriptContext *context, QScriptEngine *)
+{
+  if(context->argumentCount())
+    QCoreApplication::processEvents(QEventLoop::AllEvents, context->argument(0).toInt32());
+  else
+    QCoreApplication::processEvents();
+
+  return QScriptValue();
+}
+/*----------------------------------------------------------------------------*/
 /**Registration internal types*/
 /*----------------------------------------------------------------------------*/
 void registerTypes(QScriptEngine *engine)
 {
   QScriptValue app = engine->newQObject(qApp);
+  app.setProperty("processEvents", engine->newFunction(processEvents));
   engine->globalObject().setProperty("application", app);
   //We initialize the script engine to have the Qt namespace, so that e.g., Qt.Key_Left will be available to script code.
   QScriptValue Qt = engine->newQMetaObject(QtMetaObject::get());
@@ -132,8 +143,13 @@ void registerTypes(QScriptEngine *engine)
   QAudioFormatPrototype::registerPrototype(engine);
   WavFileWrapper::registerWrapper(engine);
   EffectPropertiesWrapper::registerWrapper(engine);
+
   app.setProperty("registerExtension", engine->newFunction(registerExtension));
   engine->globalObject().setProperty("registerExtension", engine->newFunction(registerExtension));
+
+  engine->globalObject().setProperty("editWindow", engine->newQObject(mainWindow));
+  engine->globalObject().setProperty("mainWindow", engine->newQObject(mainWindow));
+  engine->globalObject().setProperty("processEvents", engine->newFunction(processEvents));
 }
 /*----------------------------------------------------------------------------*/
 void loadScripts(QObject *parent)

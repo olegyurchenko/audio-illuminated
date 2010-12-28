@@ -2,6 +2,7 @@
 
 var audioController = application.findChild("audioController");
 var waveForm = editWindow.findChild("editPanel").findChild("waveForm");
+var effectController = application.findChild("effectController")
 
 //print((11.45).toFixed(5))
 
@@ -10,7 +11,7 @@ var Nf = 10
 
 function Extension()
 {
-  this.title = "JS extensions/Filters/LBF"
+  this.title = "JS extensions/Effect placement/LBF"
   this.call = function()
   {
     filter()
@@ -44,38 +45,10 @@ function HxData(H,data)
   return s;
 }
 /*----------------------------------------------------------------------------*/
-function printFiltered(src, dst)
-{
-  var l = 30
-  var isrc = (src * l + l/2).toFixed();
-  var idst = (dst * l + l/2).toFixed();
-  //print(src.toPresigion(4) ,dst.toPresigion(4),"\t")
-  str = "\t|";
-  for(var i = 0; i < l; i++)
-  {
-    if(i == isrc && i == idst)
-      str += "*";
-    else
-    if(i == isrc)
-      str += "+"
-    else
-    if(i == idst)
-      str += "x"
-    else
-      str += "-"
-  }
-  str += "|";
-  //print(src, dst, str);
-  print(src.toFixed(4), dst.toFixed(4),str)
-}
-
-/*----------------------------------------------------------------------------*/
 function filter()
 {
   try
   {
-    print(waveForm.selectionStart, waveForm.selectionLength)
-
     var wav = audioController.wavFile;
     var Fd = wav.format.frequency;
     var Fc = 1.0 * cutFrequency / Fd;
@@ -85,7 +58,8 @@ function filter()
     var i;
     var nf = 2*n + 1;
 
-    print(Fd, Fc, n, Nf)
+
+    //print(Fd, Fc, n, Nf)
 
     var H = new Array(Nf);
     for(i = 0; i <= n; i++)
@@ -106,26 +80,45 @@ function filter()
     for(i = 0; i < nf; i++)
       H[i] /= s;
 
-    print(H)
-    var length = waveForm.selectionLength;
+    //print(H)
+    var length = audioController.length;
+    length -= waveForm.selectionStart
     wav.seek(waveForm.selectionStart)
     var data = wav.readMix(Nf - 1)
     length -= nf - 1
     print(length);
     waveForm.position = waveForm.selectionStart
-    for(i = 0; i < length && i < 1000000; i++)
+
+    var aborted = false;
+    var waitForm = uiLoad(scriptDir + "/wait.ui")
+
+    onReject = function()
+    {
+      aborted = true
+    }
+
+    waitForm.findChild("buttonBox").rejected.connect(this, onReject)
+    var progressBar = waitForm.findChild("progressBar")
+    waitForm.show()
+    application.processEvents()
+
+    for(i = 0; i < length && !aborted; i++)
     {
       //print(i);
       var src = wav.readMix();
       data.shift();
       data.push(src[0]);
       var dst = HxData(H, data)
-      printFiltered(src[0], dst)
-      if(!(i % 100))
-        waveForm.position = waveForm.selectionStart + i
+      //printFiltered(src[0], dst)
+      if(!(i % 1000))
+      {
+        waveForm.position = waveForm.selectionStart + i;
+        progressBar.value = (i * 100)/length;
+      }
+      application.processEvents()
 
     }
-
+    waitForm.hide()
   }
 
   catch(error)
