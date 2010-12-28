@@ -24,7 +24,7 @@ EditPanel :: EditPanel(QWidget *parent)
   m_channelId = 1;
 
   m_waveForm = new WaveFormWidget(this);
-  m_waveForm->setObjectName("vaveForm");
+  m_waveForm->setObjectName("waveForm");
   m_waveForm->setBgColor(palette().color(QPalette::Window));
   m_waveForm->setFgColor(palette().color(QPalette::Foreground));
   m_waveForm->setMarkerColor(Qt::darkBlue);

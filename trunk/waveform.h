@@ -34,6 +34,12 @@ class WaveFormThread;
 class WaveFormWidget : public QWidget
 {
   Q_OBJECT
+  Q_PROPERTY(qint64 selectionStart READ selectionStart WRITE setStartSelection)
+  Q_PROPERTY(qint64 selectionLength READ selectionLength WRITE setSelectionLength)
+  Q_PROPERTY(qint64 position READ position WRITE setFilePosition)
+  Q_PROPERTY(qint64 startPosition READ position)
+  Q_PROPERTY(qint64 windowDuration READ windowDuration WRITE setWindowDuration)
+  Q_PROPERTY(qint64 windowLength READ windowLength)
 
 protected:
   qint64 m_startPosition;
@@ -77,8 +83,15 @@ public:
   void setWavFile(WavFile *w);
   qint64 windowDuration() const {return m_windowDurationUs;}
   qint64 windowLength() const {return m_windowSize;}
+
   qint64 selectionStart() const {return m_selectionStart;}
+  void setStartSelection(int x);
+
   qint64 selectionLength() const {return m_selectionLength;}
+  void setSelectionLength(int x) {setEndSelection(x + selectionStart());}
+
+  qint64 position() {return m_position;}
+  qint64 startPosition() {return m_startPosition;}
 
   QColor bgColor(){return m_bgColor;}
   QColor fgColor(){return m_fgColor;}
@@ -100,7 +113,6 @@ protected:
   void drawTile(Tile &tile);
 
   qint64 pixel2audio(int x) const;
-  void setStartSelection(int x);
   void setEndSelection(int x);
 
 public slots:

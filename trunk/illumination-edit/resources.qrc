@@ -10,5 +10,6 @@
         <file>resources/hand.png</file>
         <file>resources/viewmag.png</file>
         <file>resources/exec.png</file>
+        <file>resources/effect.png</file>
     </qresource>
 </RCC>
