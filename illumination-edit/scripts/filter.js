@@ -1,5 +1,8 @@
 //Digital filter audio
 
+var LBF = 1
+var HBF = 2
+
 var audioController = application.findChild("audioController");
 var waveForm = editWindow.findChild("editPanel").findChild("waveForm");
 
@@ -7,27 +10,43 @@ var waveForm = editWindow.findChild("editPanel").findChild("waveForm");
 
 var cutFrequency = 1000; //Hz
 var Nf = 10
+var filterType = HBF
 
 function Extension()
 {
-  this.title = "JS extensions/Filters/LBF"
-  this.call = function()
+  this.call1 = function()
   {
-    filter()
+    cutFrequency = 1000; //Hz
+    filterType = LBF;
+    filter();
+  }
+
+  this.call2 = function()
+  {
+    cutFrequency = 3000; //Hz
+    filterType = HBF;
+    filter();
   }
 
   this.onWavOpened = function (wavFile)
   {
-    this.action.enabled = true
+    this.action1.enabled = true
+    this.action2.enabled = true
   }
   /*----------------------------------------------------------------------------*/
   this.onWavClosed = function ()
   {
-    this.action.enabled = false
+    this.action1.enabled = false
+    this.action2.enabled = false
   }
   /*----------------------------------------------------------------------------*/
-  this.action = application.registerExtension(this, this.call)
-  this.action.enabled = false
+  this.title = "JS extensions/Filters/LBF"
+  this.action1 = application.registerExtension(this, this.call1)
+  this.action1.enabled = false
+
+  this.title = "JS extensions/Filters/HBF"
+  this.action2 = application.registerExtension(this, this.call2)
+  this.action2.enabled = false
 
   audioController.wavOpen.connect(this, this.onWavOpened)
   audioController.wavClose.connect(this, this.onWavClosed)
@@ -47,8 +66,8 @@ function HxData(H,data)
 function printFiltered(src, dst)
 {
   var l = 30
-  var isrc = (src * l + l/2).toFixed();
-  var idst = (dst * l + l/2).toFixed();
+  var isrc = (src * l/2 + l/2).toFixed();
+  var idst = (dst * l/2 + l/2).toFixed();
   //print(src.toPresigion(4) ,dst.toPresigion(4),"\t")
   str = "\t|";
   for(var i = 0; i < l; i++)
@@ -81,6 +100,7 @@ function filter()
     var Fc = 1.0 * cutFrequency / Fd;
     var pi = Math.PI;
     var sin = Math.sin;
+    var cos = Math.cos;
     var n = Nf/2;
     var i;
     var nf = 2*n + 1;
@@ -88,16 +108,39 @@ function filter()
     print(Fd, Fc, n, Nf)
 
     var H = new Array(Nf);
-    for(i = 0; i <= n; i++)
+    if(filterType == LBF)
     {
-      if(!i)
-        H[n] = 2 * Fc;
-      else
+      print("Low band filter")
+      for(i = 0; i <= n; i++)
       {
-        H[n+i] = sin(2 * pi * i * Fc) /(i * pi);
-        H[n-i] = H[n+i];
+        if(!i)
+          H[n] = 2 * Fc;
+        else
+        {
+          H[n+i] = sin(2 * pi * i * Fc) /(i * pi);
+          H[n-i] = H[n+i];
+        }
       }
     }
+    else
+    if(filterType == HBF)
+    {
+      print("Hi band filter")
+      for(i = 0; i <= n; i++)
+      {
+        if(!i)
+          H[n] = 1 - 2 * Fc;
+        else
+        {
+          H[n+i] = -1 * sin(2 * pi * i * Fc) /(i * pi);
+          H[n-i] = H[n+i];
+        }
+      }
+    }
+
+    //Hamming widow
+    for(i = 0; i < nf; i++)
+      H[i] *= 0.54 - 0.46 * cos((2 * i * pi)/nf);
 
     //Normalise
     var s = 0.0;
@@ -106,6 +149,9 @@ function filter()
     for(i = 0; i < nf; i++)
       H[i] /= s;
 
+
+
+    print("Sum of H", s)
     print(H)
     var length = waveForm.selectionLength;
     wav.seek(waveForm.selectionStart)

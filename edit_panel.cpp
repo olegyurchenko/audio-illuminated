@@ -95,6 +95,14 @@ void EditPanel :: onWavClose()
   hScroll->setMaximum(0);
 }
 /*----------------------------------------------------------------------------*/
+void EditPanel :: setPosition(qint64 samples)
+{
+  if(m_waveForm->windowLength())
+  {
+    hScroll->setSliderPosition( (int)(STEP * samples / m_waveForm->windowLength() ));
+    m_waveForm->setFilePosition(samples);
+  }
+}
 void EditPanel :: onPlayPosition(qint64 samples)
 {
   if(m_waveForm->windowLength())

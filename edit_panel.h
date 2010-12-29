@@ -49,6 +49,7 @@ protected slots:
   void onWindowStartChanged(qint64 pos);
   void onScrollChanged(int pos);
 public slots:
+  void setPosition(qint64 samples);
   void setWindowDuration(qint64 duration);
   void setChannel(int c);
 
