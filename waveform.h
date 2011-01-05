@@ -17,7 +17,7 @@
 #define WAVEFORM_H_1291720077
 /*----------------------------------------------------------------------------*/
 #include <QWidget>
-#include <QImage>
+#include <QPixmap>
 #include <QVector>
 #include <QColor>
 #include <QList>
@@ -26,10 +26,24 @@
 #include <QMap>
 #include <QMutex>
 #include <QSemaphore>
+#include <QMetaType>
 
 class WavFile;
 class QFile;
 class WaveFormThread;
+/*----------------------------------------------------------------------------*/
+struct Tile
+{
+  int index;
+  qint64 startPosition;
+  bool painted;
+  QVector< QVector<QPoint> > points;
+  QPixmap *pixmap;
+};
+
+Q_DECLARE_METATYPE(Tile)
+/*----------------------------------------------------------------------------*/
+
 /*----------------------------------------------------------------------------*/
 class WaveFormWidget : public QWidget
 {
@@ -65,13 +79,6 @@ protected:
   qint64 m_tileCount;
   int m_noPainted;
 
-  typedef struct
-  {
-    int index;
-    qint64 startPosition;
-    bool painted;
-    QImage *image;
-  } Tile;
 
   typedef QList<Tile> TileList;
   TileList m_tiles;
@@ -125,7 +132,7 @@ public slots:
   void setMarkerColor(QColor c);
   void setWindowDuration(qint64 duration);
 protected slots:
-  void onTilePainted(int index, int transNo);
+  void onTilePainted(int transNo, Tile tile);
   void onTilesReady();
 signals:
   void windowStartChanged(qint64);
@@ -137,7 +144,7 @@ class WaveFormThread : public QThread
 {
   Q_OBJECT
 protected:
-  typedef QMap<int, WaveFormWidget::Tile> TileMap;
+  typedef QMap<int, Tile> TileMap;
   TileMap m_tiles;
   bool m_terminated;
   QSemaphore m_sem;
@@ -149,7 +156,7 @@ public:
   WaveFormThread(WaveFormWidget *parent);
   virtual ~WaveFormThread();
   virtual void run();
-  void addTile(const WaveFormWidget::Tile& tile);
+  void addTile(Tile tile);
   void clear();
   void clearQueue();
   int transNo();
@@ -158,7 +165,7 @@ public:
   void unlock(){m_global.unlock();}
 
 signals:
-  void tilePainted(int index, int transNo);
+  void tilePainted(int transNo, Tile tile);
   void ready();
 };
 /*----------------------------------------------------------------------------*/
