@@ -31,6 +31,7 @@ WaveFormThread :: WaveFormThread(WaveFormWidget *parent)
 {
   m_waveform = parent;
   m_terminated = false;
+  qRegisterMetaType<Tile>("Tile");
 }
 /*----------------------------------------------------------------------------*/
 WaveFormThread :: ~WaveFormThread()
@@ -57,7 +58,7 @@ void WaveFormThread :: run()
       continue;
 
     bool empty = false;
-    WaveFormWidget::Tile tile;
+    Tile tile;
     int transNo;
 
     lock();
@@ -78,7 +79,7 @@ void WaveFormThread :: run()
 
     m_waveform->drawTile(tile);
     unlock();
-    emit tilePainted(tile.index, transNo);
+    emit tilePainted(transNo, tile);
 
     m_mut.lock();
     empty = m_tiles.isEmpty();
@@ -88,7 +89,7 @@ void WaveFormThread :: run()
   }
 }
 /*----------------------------------------------------------------------------*/
-void WaveFormThread :: addTile(const WaveFormWidget::Tile& tile)
+void WaveFormThread :: addTile(Tile tile)
 {
   m_mut.lock();
   m_tiles[tile.index] = tile;
@@ -136,7 +137,7 @@ WaveFormWidget :: WaveFormWidget(QWidget *parent)
   m_markerColor = Qt::green;
   m_noPainted = 0;
   m_thread = new WaveFormThread(this);
-  connect(m_thread, SIGNAL(tilePainted(int,int)), this, SLOT(onTilePainted(int,int)), Qt::QueuedConnection);
+  connect(m_thread, SIGNAL(tilePainted(int,Tile)), this, SLOT(onTilePainted(int,Tile)), Qt::QueuedConnection);
   connect(m_thread, SIGNAL(ready()), this, SLOT(onTilesReady()), Qt::QueuedConnection);
   m_thread->start();
 }
@@ -151,8 +152,9 @@ void WaveFormWidget :: clear()
   m_thread->clear();
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
-    if(m_tiles[i].image != NULL)
-      delete m_tiles[i].image;
+  {
+    delete m_tiles[i].pixmap;
+  }
   m_tiles.clear();
 }
 /*----------------------------------------------------------------------------*/
@@ -176,7 +178,7 @@ void WaveFormWidget :: init(QSize size)
     Tile t;
     t.index = (int) i;
     t.startPosition = i * m_tileSize + m_startPosition;
-    t.image = new QImage(tileSize, QImage::Format_RGB32);
+    t.pixmap = new QPixmap(tileSize);
     t.painted = false;
     m_tiles.append(t);
   }
@@ -186,7 +188,6 @@ void WaveFormWidget :: init(QSize size)
 void WaveFormWidget :: drawTiles()
 {
   m_thread->clearQueue();
-  m_noPainted = 0;
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
   {
@@ -195,7 +196,6 @@ void WaveFormWidget :: drawTiles()
       m_tiles[i].index = i;
       m_tiles[i].startPosition = m_tileSize * i + m_startPosition;
       m_thread->addTile(m_tiles[i]);
-      m_noPainted ++;
     }
   }
 }
@@ -203,7 +203,6 @@ void WaveFormWidget :: drawTiles()
 void WaveFormWidget :: redrawTiles()
 {
   m_thread->clearQueue();
-  m_noPainted = 0;
   int size = m_tiles.size();
   for(int i = 0; i < size; i++)
   {
@@ -217,37 +216,20 @@ void WaveFormWidget :: redrawTiles()
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: drawTile(Tile &tile)
 {
-  QImage *image = tile.image;
-  if(image == NULL)
-    return;
-
-  QPainter painter(image);
-
   int channels = m_wav->format().channels();
 
-  QPen pen(m_fgColor);
-  painter.setPen(pen);
+  qreal dX = (qreal)tile.pixmap->width() / (qreal) m_tileSize;
+  qreal dY = (qreal)tile.pixmap->height() / (2 * (qreal) channels);
 
-  painter.fillRect(image->rect(), m_bgColor);
-
-  qreal dX = (qreal)image->width() / (qreal) m_tileSize;
-  qreal dY = (qreal)image->height() / (2 * (qreal) channels);
-
-  typedef QVector<QPoint> Points;
-  QVector<Points> points(channels, Points(m_tileSize));
+  //QVector< QVector<QPoint> > &points = tile.points;
+  QVector< QVector<QPoint> > points(channels, QVector<QPoint>(m_tileSize));
 
   QVector<int> baseY(channels);
 
-  QPen pen1(m_gridColor);
-  painter.setPen(pen1);
   for(int i = 0; i < channels; i++)
   {
-    QLine line;
     baseY[i] = (int)(dY + dY * i * 2);
     QPoint p1(0, baseY[i]);
-    line.setP1(p1);
-    line.setP2(QPoint(image->width(), baseY[i]));
-    painter.drawLine(line);
     points[i][0] = p1;
   }
 
@@ -278,14 +260,8 @@ void WaveFormWidget :: drawTile(Tile &tile)
     }
   }
 
-  painter.setPen(pen);
-  for(int i = 0; i < channels; i++)
-  {
-    Points &p = points[i];
-    painter.drawPolyline(p.data(), p.size());
-  }
-
-  tile.painted = true;
+  tile.points = points;
+  //tile.painted = true;
 }
 /*----------------------------------------------------------------------------*/
 void WaveFormWidget :: setWavFile(WavFile *w)
@@ -341,7 +317,7 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
   for(int i = 0; i < size; i++)
   {
     if(m_tiles[i].painted)
-      painter.drawImage((int)(i * m_tileSize * dX), 0, *m_tiles[i].image);
+      painter.drawPixmap((int)(i * m_tileSize * dX), 0, *m_tiles[i].pixmap);
   }
 
   QPen pen(m_markerColor);
@@ -370,8 +346,8 @@ void WaveFormWidget :: paintEvent(QPaintEvent *event)
       if(!m_tiles[i].painted)
         continue;
       int x = (int)(i * m_tileSize * dX);
-      if(x < r.right() && x + m_tiles[i].image->width() >= r.left())
-        painter1.drawImage(QPoint(x - r.left(), 0), *m_tiles[i].image);
+      if(x < r.right() && x + m_tiles[i].pixmap->width() >= r.left())
+        painter1.drawPixmap(QPoint(x - r.left(), 0), *m_tiles[i].pixmap);
     }
 
     painter1.setPen(pen);
@@ -582,12 +558,20 @@ void WaveFormWidget :: setWindowDuration(qint64 duration)
   }
 }
 /*----------------------------------------------------------------------------*/
-void WaveFormWidget :: onTilePainted(int index, int transNo)
+void WaveFormWidget :: onTilePainted(int transNo, Tile tile)
 {
-  if(index >= 0 && index <= m_tiles.size() && transNo == m_thread->transNo())
+  if(tile.index >= 0 && tile.index <= m_tiles.size() && transNo == m_thread->transNo() )
   {
-    //m_tiles[index].image = image;
-    m_tiles[index].painted = true;
+    QPainter painter(tile.pixmap);
+    painter.fillRect(tile.pixmap->rect(), m_bgColor);
+    int s = tile.points.size();
+    for(int i = 0; i < s; i++)
+    {
+      QVector<QPoint> &p = tile.points[i];
+      painter.drawPolyline(p);
+    }
+
+    m_tiles[tile.index].painted = true;
   }
 }
 /*----------------------------------------------------------------------------*/
