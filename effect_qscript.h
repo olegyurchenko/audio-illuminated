@@ -32,6 +32,7 @@ protected:
   static QScriptValue toScriptValue(QScriptEngine *engine, const EffectProperties &p)
   {
     QScriptValue obj = engine->newVariant(QVariant::fromValue((EffectProperties*)&p));
+#if 1
     QScriptValue prototype = engine->globalObject().property("EffectPropertiesPrototype");
     if(!prototype.isValid())
     {
@@ -41,10 +42,19 @@ protected:
       prototype.setProperty("effectId", engine->newFunction(effectId), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
       prototype.setProperty("channel", engine->newFunction(channel), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
       prototype.setProperty("timeStart", engine->newFunction(timeStart), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
-      prototype.setProperty("property", engine->newFunction(property), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
+      prototype.setProperty("property", engine->newFunction(property), QScriptValue::PropertyGetter/*|QScriptValue::PropertySetter*/);
+      prototype.setProperty("prop", engine->newFunction(property), QScriptValue::PropertyGetter/*|QScriptValue::PropertySetter*/);
       engine->globalObject().setProperty("EffectPropertiesPrototype", prototype);
     }
     obj.setPrototype(prototype);
+#else
+    obj.setProperty("toString", engine->newFunction(toString));
+    obj.setProperty("id", engine->newFunction(id), QScriptValue::PropertyGetter);
+    obj.setProperty("effectId", engine->newFunction(effectId), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
+    obj.setProperty("channel", engine->newFunction(channel), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
+    obj.setProperty("timeStart", engine->newFunction(timeStart), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
+    obj.setProperty("property", engine->newFunction(property), QScriptValue::PropertyGetter/*|QScriptValue::PropertySetter*/);
+#endif
     return obj;
   }
   //-------------------------
