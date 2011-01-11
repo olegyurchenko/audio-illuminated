@@ -2,8 +2,9 @@
 
 var effectController = application.findChild("effectController")
 
-var effect = new Effect(1, 1)
-effect.timeStart = 1
+var effect = new Effect(2, 3)
+effect.timeStart = 12345;
+effect.prop("value", 1);
 
 print(effect, effect.timeStart)
 
