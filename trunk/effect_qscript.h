@@ -42,8 +42,8 @@ protected:
       prototype.setProperty("effectId", engine->newFunction(effectId), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
       prototype.setProperty("channel", engine->newFunction(channel), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
       prototype.setProperty("timeStart", engine->newFunction(timeStart), QScriptValue::PropertyGetter|QScriptValue::PropertySetter);
-      prototype.setProperty("property", engine->newFunction(property), QScriptValue::PropertyGetter/*|QScriptValue::PropertySetter*/);
-      prototype.setProperty("prop", engine->newFunction(property), QScriptValue::PropertyGetter/*|QScriptValue::PropertySetter*/);
+      prototype.setProperty("property", engine->newFunction(property));
+      prototype.setProperty("prop", engine->newFunction(property));
       engine->globalObject().setProperty("EffectPropertiesPrototype", prototype);
     }
     obj.setPrototype(prototype);

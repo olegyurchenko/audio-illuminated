@@ -46,5 +46,8 @@ FORMS    += editorwindow.ui
 INCLUDEPATH += .\
   ../
 
-RESOURCES += \
-    resources.qrc
+RESOURCES += resources.qrc
+
+win32 {
+   RC_FILE = illumination-edit.rc
+}
