@@ -11,5 +11,13 @@
         <file>resources/viewmag.png</file>
         <file>resources/exec.png</file>
         <file>resources/effect.png</file>
+        <file>resources/edit.png</file>
+        <file>resources/editclear.png</file>
+        <file>resources/editcopy.png</file>
+        <file>resources/editcut.png</file>
+        <file>resources/editdelete.png</file>
+        <file>resources/editpaste.png</file>
+        <file>resources/undo.png</file>
+        <file>resources/redo.png</file>
     </qresource>
 </RCC>
